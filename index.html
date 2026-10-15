@@ -1,0 +1,346 @@
+<title>Eventer Свадьба</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;600&display=swap">
+<style>
+/* Прототип пути частного заказчика: 3 коротких шага → подборка из живой базы → экран «Чего не хватает базе». Узкая колонка под телефон. */
+:root{
+  --bg:#F6F4F0; --surface:#FFFFFF; --surface2:#F1EEE9; --line:#E4E0DA; --line2:#EFEBE5;
+  --ink:#1A1A1F; --ink2:#5E5B57; --ink3:#8F8B84;
+  --accent:#3B3FB8; --accent-ink:#2A2D8A; --accent-soft:#E9EAFB; --on-accent:#FFFFFF;
+  --ok:#1F5C38; --ok-bg:#E8F3EC; --warn:#7A4E00; --warn-bg:#FDF1E3; --bad:#9A2E1F; --bad-bg:#FBE9E7;
+  --display:Unbounded,Onest,system-ui,sans-serif; --body:Onest,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){color-scheme:dark;
+  --bg:#141417; --surface:#1D1D22; --surface2:#24242A; --line:#33333B; --line2:#2A2A31;
+  --ink:#F2EFEA; --ink2:#B4AFA8; --ink3:#86817A;
+  --accent:#9A9EF5; --accent-ink:#BFC2FA; --accent-soft:#25264A; --on-accent:#14142B;
+  --ok:#8FD3A8; --ok-bg:#16301F; --warn:#F0C27A; --warn-bg:#33260F; --bad:#F2A093; --bad-bg:#3A1A15;}}
+:root[data-theme="dark"]{color-scheme:dark;
+  --bg:#141417; --surface:#1D1D22; --surface2:#24242A; --line:#33333B; --line2:#2A2A31;
+  --ink:#F2EFEA; --ink2:#B4AFA8; --ink3:#86817A;
+  --accent:#9A9EF5; --accent-ink:#BFC2FA; --accent-soft:#25264A; --on-accent:#14142B;
+  --ok:#8FD3A8; --ok-bg:#16301F; --warn:#F0C27A; --warn-bg:#33260F; --bad:#F2A093; --bad-bg:#3A1A15;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 var(--body);font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font-family:var(--display);font-weight:600;font-size:22px;letter-spacing:-.01em;line-height:1.2}
+h2{font-size:17px;font-weight:700}
+.wrap{max-width:480px;margin:0 auto;padding:16px 16px 96px;display:flex;flex-direction:column;gap:18px;min-height:100vh}
+.bar{display:flex;align-items:center;gap:10px}
+.brand{font-family:var(--display);font-weight:600;font-size:14px;margin-right:auto}
+.brand i{font-style:normal;color:var(--accent)}
+.back{background:none;border:0;color:var(--ink2);cursor:pointer;padding:6px 0}
+.dots{display:flex;gap:5px}
+.dots i{width:22px;height:4px;border-radius:2px;background:var(--line)}
+.dots i.on{background:var(--accent)}
+.muted{color:var(--ink2)}
+.small{font-size:13.5px}
+.lbl{font-size:13px;font-weight:600;color:var(--ink2)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:16px 14px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:4px;min-height:86px}
+.tile b{font-size:16px}
+.tile span{font-size:13px;color:var(--ink2)}
+.tile:hover{border-color:var(--accent)}
+.tile.on{border-color:var(--accent);background:var(--accent-soft)}
+.tile[disabled]{opacity:.55;cursor:default;border-style:dashed}
+.tile[disabled]:hover{border-color:var(--line)}
+.q{display:flex;flex-direction:column;gap:8px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{background:var(--surface);border:1.5px solid var(--line);border-radius:999px;padding:9px 14px;cursor:pointer}
+.opt:hover{border-color:var(--accent)}
+.opt.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+.in{background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;width:100%;min-width:0}
+.in:focus,.opt:focus-visible,.tile:focus-visible,.cta:focus-visible,.seg button:focus-visible,.link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.foot{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(to top,var(--bg) 70%,transparent);padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px))}
+.foot .inner{max-width:448px;margin:0 auto;display:flex;flex-direction:column;gap:6px}
+.cta{background:var(--accent);color:var(--on-accent);border:0;border-radius:14px;padding:14px;font-weight:700;cursor:pointer;width:100%}
+.cta[disabled]{opacity:.4;cursor:default}
+.link{background:none;border:0;color:var(--ink2);cursor:pointer;padding:6px;text-decoration:underline;text-underline-offset:3px}
+.sum{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-wrap:wrap;gap:6px}
+.pill{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;font-weight:600;font-size:13px;background:var(--surface2);color:var(--ink2)}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}.pill.warn{background:var(--warn-bg);color:var(--warn)}.pill.bad{background:var(--bad-bg);color:var(--bad)}.pill.acc{background:var(--accent-soft);color:var(--accent-ink)}
+.seg{display:flex;background:var(--surface2);border-radius:12px;padding:3px;gap:2px}
+.seg button{flex:1;border:0;background:none;padding:9px 8px;border-radius:9px;cursor:pointer;color:var(--ink2)}
+.seg button.on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.need{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.need .hd{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.need .hd h2{margin-right:auto}
+.cand{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:9px 0;border-top:1px solid var(--line2)}
+.cand .nm{font-weight:600;overflow-wrap:anywhere}
+.cand .mt{grid-column:1 / -1;font-size:13.5px;color:var(--ink2);overflow-wrap:anywhere}
+.note{border-radius:12px;padding:11px 13px;font-size:14.5px}
+.note.bad{background:var(--bad-bg)}.note.bad b{color:var(--bad)}
+.note.warn{background:var(--warn-bg)}.note.warn b{color:var(--warn)}
+.note.ok{background:var(--ok-bg)}.note.ok b{color:var(--ok)}
+.gap{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;font-size:14.5px}
+.gap span:nth-child(even){font-weight:600;text-align:right}
+.task{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line2)}
+.task:first-child{border-top:0}
+.task .n{font-family:var(--display);font-size:13px;color:var(--ink3);min-width:20px;padding-top:2px}
+.err{background:var(--bad-bg);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.err b{color:var(--bad)}
+</style>
+
+<div class="wrap" id="app"><div class="bar"><span class="brand">EVENTER <i>Свадьба</i></span></div><div class="muted">Подключаюсь к базе…</div></div>
+
+<script>
+const PROJECT = "hgzxowfegmvxqtryphbd", SERVER = "Supabase";
+const app = document.getElementById("app");
+let mcp = null;
+
+/* ---------- Контент онбординга (черновик, правится Кайратом) ---------- */
+const GUIDE = [
+  ["Идея и стиль", "Решите, какой праздник хотите вы сами: камерный ужин, большой той или свадьба на природе. Всё остальное подстроится под это."],
+  ["Бюджет и гости", "Сначала общая сумма и примерное число гостей — от них зависит выбор зала. Отложите 5–8% на непредвиденное."],
+  ["Дата и площадка", "Площадку бронируют раньше всего: хорошие залы на лето разбирают за 6–9 месяцев. Берите зал на 10–15% больше списка гостей."],
+  ["Ведущий, фото, видео", "Сразу после площадки. Сильные ведущие и фотографы заняты на сезон вперёд. С каждым — договор с датой и суммой."],
+  ["Декор, музыка, образы", "Цвета и декор — только когда известен зал. Платье и костюм — за 3–4 месяца."],
+  ["Тайминг дня", "Распишите день по часам с запасом на опоздания и запасной план на случай погоды."],
+  ["Сам день", "Последний вечер — свободный. Все мелочи закрывайте заранее, а в день свадьбы за всё отвечает координатор."]
+];
+const STYLES = [
+  ["classic", "Современная классика", "Банкетный зал, белое и золото, большой красивый праздник"],
+  ["toi", "Национальный той", "Казахские традиции, беташар, асаба, много гостей"],
+  ["nature", "На природе", "Загородная площадка, шатёр, выездная регистрация"],
+  ["intimate", "Камерная", "Ужин для самых близких, 20–50 гостей"],
+  ["lux", "Роскошная", "Отель, авторская концепция, звёздный ведущий и артисты"]
+];
+const CITIES = ["Алматы","Астана","Шымкент","Караганда","Актобе","Атырау"];
+const GUESTS = [30, 50, 100, 150, 200, 300, 500];
+const BUDGETS = [["до 3 млн ₸",3e6],["3–6 млн ₸",6e6],["6–10 млн ₸",10e6],["10–20 млн ₸",20e6],["от 20 млн ₸",35e6],["Не знаю",null]];
+const WHERE = [
+  ["hall", "Ресторан или банкетный зал", "еда входит в стоимость"],
+  ["nokitchen", "Площадка без кухни", "загородная, шатёр, лофт"],
+  ["outdoor", "Дома или на природе", ""],
+  ["unknown", "Ещё не знаю", "покажем варианты залов"]
+];
+const WISHES = [
+  ["host", "Ведущий", ["host"]],
+  ["photo", "Фото", ["photo"]],
+  ["video", "Видео", ["video"]],
+  ["show", "Живая музыка или артисты", ["show"]],
+  ["dj", "DJ и танцы", ["dj"]],
+  ["decor", "Красивое оформление зала", ["decor"]],
+  ["ceremony", "Выездная регистрация", ["ceremony"]],
+  ["cake", "Свадебный торт", ["cake"]],
+  ["car", "Красивая машина", ["transport"]],
+  ["look", "Платье и образ невесты", ["dress", "makeup"]],
+  ["suit", "Костюм жениха", ["suit"]],
+  ["print", "Приглашения", ["print"]]
+];
+/* Доли бюджета: стартовые значения по калькулятору Banqet.kz (свадьба), дальше правятся по реальным откликам */
+const WEIGHT = {venue:45, catering:30, organizer:10, host:13, photo:7, video:5, dj:7, show:8, decor:8, cake:4, transport:4, dress:6, makeup:2, suit:2, ceremony:4, print:1, tech:5};
+const RESERVE = 0.065;
+const UNIT = {per_guest:"на гостя", per_show:"за вечер", per_project:"за работу", per_item:"за единицу", per_hour:"в час"};
+
+let S;
+function reset() { S = {step:"guide", g:0, style:null, date:"", city:"", guests:null, budget:null, path:null, where:null, wishes:{host:true, photo:true, decor:true}, cfg:null, data:null, tab:"pick"}; }
+reset();
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = n => Math.round(n ?? 0).toLocaleString("ru-RU");
+const mln = n => n >= 1e6 ? (Math.round(n / 1e5) / 10).toLocaleString("ru-RU") + " млн ₸" : num(Math.round(n / 1000) * 1000) + " ₸";
+const q = s => "'" + String(s).replace(/'/g, "''") + "'";
+
+function errCopy(e) {
+  const c = e && e.code;
+  if (c === "needs_reauth") return ["Supabase нужно переподключить", "Откройте в Claude «Настройки → Коннекторы» и переподключите Supabase, затем обновите страницу.", false];
+  if (c === "server_not_connected" || c === "selection_required" || c === "server_not_found") return ["Коннектор Supabase не найден", "Страница читает базу через ваш коннектор Supabase. Добавьте его в «Настройки → Коннекторы».", false];
+  if (c === "not_in_manifest" || c === "consent_required" || c === "not_granted") return ["Доступ к базе не разрешён", "Страница показывает данные, только если вы разрешили ей коннектор Supabase.", true];
+  if (c === "approval_required") return ["Нужно ваше разрешение", "Разрешите странице запрос к базе, чтобы увидеть подборку.", true];
+  if (c === "blocked_by_policy") return ["Запрос запрещён настройками организации", "Обратитесь к администратору рабочего пространства.", false];
+  if (c === "tool_error") return ["База ответила ошибкой", (e.message || "").slice(0, 300), true];
+  if (c === "capability_disabled" || c === "capability_removed") return ["Здесь база недоступна", "Откройте страницу в Claude под своей учётной записью.", false];
+  return ["Не удалось получить данные", "База не ответила вовремя. Попробуйте ещё раз.", true];
+}
+const API = "https://hgzxowfegmvxqtryphbd.supabase.co/rest/v1/rpc/";
+const KEY = "sb_publishable_LSSMoXyNchkWJ7c2gIdGxA_GRPdZcWX";
+async function rpc(fn, body) {
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 20000);
+  try {
+    const r = await fetch(API + fn, {method: "POST", headers: {apikey: KEY, "Content-Type": "application/json"}, body: JSON.stringify(body), signal: ctl.signal});
+    if (!r.ok) throw {code: "tool_error", message: "Код " + r.status};
+    return await r.json();
+  } catch (e) { throw e && e.code ? e : {code: "network"}; } finally { clearTimeout(t); }
+}
+async function sql(query) {
+  if (!mcp) throw {code: "capability_disabled"};
+  const run = () => mcp.callTool(SERVER, "execute_sql", {project_id: PROJECT, query}, {cache: {staleTime: 60000}});
+  let res;
+  try { res = await run(); }
+  catch (e) {
+    if (!e || !e.retryable) throw e;
+    await new Promise(r => setTimeout(r, Math.min(e.retryAfterMs || 1500, 8000) + Math.random() * 600));
+    res = await run();
+  }
+  let p = res.payload;
+  let text = typeof p === "string" ? p : (p && typeof p.result === "string" ? p.result : null);
+  if (text === null && Array.isArray(p)) return p[0] && p[0].r;
+  if (text === null) throw {code: "tool_error", message: "Неожиданный ответ базы"};
+  const close = text.indexOf("</untrusted-data-");
+  let body = text;
+  if (close > 0) { const open = text.lastIndexOf("<untrusted-data-", close - 1); body = text.slice(text.indexOf(">", open) + 1, close); }
+  let rows;
+  try { rows = JSON.parse(body.trim()); } catch (_) { throw {code: "tool_error", message: "Не удалось разобрать ответ базы"}; }
+  return rows && rows[0] ? rows[0].r : null;
+}
+
+/* ---------- Каркас ---------- */
+const ORDER = ["guide", "style", "known", "path", "where", "wishes", "result"];
+function shell(body, foot, backTo) {
+  const back = backTo ? '<button class="back" id="back">← Назад</button>' : "";
+  app.innerHTML = `<div class="bar">${back}<span class="brand" style="${back ? "margin-left:auto;margin-right:0" : ""}">EVENTER <i>Свадьба</i></span></div>${body}${foot ? `<div class="foot"><div class="inner">${foot}</div></div>` : ""}`;
+  const b = app.querySelector("#back"); if (b) b.onclick = () => { S.data = null; go(backTo); };
+  window.scrollTo(0, 0);
+}
+function go(step) { S.step = step; render(); }
+function render() { ({guide, style, known, path, where, wishes, result, browse})[S.step](); }
+const opt = (on, id, attrs, label) => `<button class="opt${on ? " on" : ""}" id="${id}" ${attrs}>${esc(label)}</button>`;
+
+/* 1. Как организовать свадьбу — 7 шагов */
+function guide() {
+  const i = S.g, [t, d] = GUIDE[i];
+  shell(`<div class="muted small">Как организовать свадьбу · ${i + 1} из ${GUIDE.length}</div>
+   <div class="need" style="min-height:220px;justify-content:center"><span class="pill acc" style="align-self:flex-start">Шаг ${i + 1}</span><h1>${esc(t)}</h1><div style="font-size:17px">${esc(d)}</div></div>
+   <span class="dots" style="justify-content:center">${GUIDE.map((_, k) => `<i class="${k <= i ? "on" : ""}"></i>`).join("")}</span>`,
+   `<button class="cta" id="next">${i < GUIDE.length - 1 ? "Дальше" : "Начать"}</button><button class="link" id="skip">Пропустить</button>`, i ? null : null);
+  app.querySelector("#next").onclick = () => { if (S.g < GUIDE.length - 1) { S.g++; guide(); } else go("style"); };
+  app.querySelector("#skip").onclick = () => go("style");
+}
+
+/* 2. Какая у вас свадьба */
+function style() {
+  shell(`<div><h1>Какая у вас свадьба?</h1><div class="muted">Выберите, что ближе. Это подскажет нам площадки и исполнителей.</div></div>
+   <div class="tiles" style="grid-template-columns:1fr">${STYLES.map(s => `<button class="tile${S.style === s[0] ? " on" : ""}" id="st-${s[0]}" data-st="${s[0]}"><b>${esc(s[1])}</b><span>${esc(s[2])}</span></button>`).join("")}</div>`,
+   `<button class="link" id="skip">Пока не знаю</button>`, "guide");
+  app.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { S.style = b.dataset.st; go("known"); });
+  app.querySelector("#skip").onclick = () => go("known");
+}
+
+/* 3. Что вы уже знаете */
+function known() {
+  const ready = S.city && S.guests;
+  shell(`<div><h1>Что вы уже знаете?</h1><div class="muted">Отметьте известное. Остальное уточним позже.</div></div>
+   <div class="q"><label class="lbl" for="f-date">Дата</label><input class="in" id="f-date" type="date" value="${esc(S.date)}"></div>
+   <div class="q"><span class="lbl">Город</span><div class="opts">${CITIES.map((c, i) => opt(S.city === c, "c" + i, `data-city="${esc(c)}"`, c)).join("")}</div></div>
+   <div class="q"><span class="lbl">Примерно гостей</span><div class="opts">${GUESTS.map(g => opt(S.guests === g, "g" + g, `data-g="${g}"`, "до " + g)).join("")}</div></div>
+   <div class="q"><span class="lbl">Бюджет на всю свадьбу</span><div class="opts">${BUDGETS.map((b, i) => opt(S.budget === i, "b" + i, `data-b="${i}"`, b[0])).join("")}</div></div>`,
+   `<button class="cta" id="next" ${ready ? "" : "disabled"}>Дальше</button>${ready ? "" : '<span class="muted small" style="text-align:center">Нужны хотя бы город и число гостей</span>'}`, "style");
+  app.querySelector("#f-date").onchange = e => { S.date = e.target.value; };
+  app.querySelectorAll("[data-city]").forEach(b => b.onclick = () => { S.city = b.dataset.city; keep(known); });
+  app.querySelectorAll("[data-g]").forEach(b => b.onclick = () => { S.guests = +b.dataset.g; keep(known); });
+  app.querySelectorAll("[data-b]").forEach(b => b.onclick = () => { S.budget = +b.dataset.b; keep(known); });
+  app.querySelector("#next").onclick = () => { if (S.city && S.guests) go("path"); };
+}
+function keep(fn) { const y = window.scrollY; fn(); window.scrollTo(0, y); }
+
+/* 4. Развилка */
+function path() {
+  const P = [["organizer", "Доверю организатору", "Подберём агентство, координатора или ведущего-продюсера. Вы выбираете — они делают."],
+             ["self", "Организую сам", "Пошаговый план, бюджет по статьям и проверенные исполнители на каждом шаге."],
+             ["browse", "Пока смотрю", "Реальные свадьбы, идеи и советы — без обязательств."]];
+  shell(`<div><h1>Как вам удобнее?</h1></div>
+   <div class="tiles" style="grid-template-columns:1fr">${P.map(p => `<button class="tile" id="p-${p[0]}" data-p="${p[0]}"><b>${esc(p[1])}</b><span>${esc(p[2])}</span></button>`).join("")}</div>
+   <div class="muted small">Начать самому и потом передать всё организатору можно в любой момент — он получит уже собранный бриф.</div>`, null, "known");
+  app.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { S.path = b.dataset.p; S.data = null; go(S.path === "self" ? "where" : S.path === "browse" ? "browse" : "result"); });
+}
+function browse() {
+  shell(`<div><h1>Вдохновение</h1></div>
+   <div class="need"><h2>Здесь будет витрина</h2><div class="muted">Реальные свадьбы с бюджетом и командой, свадьбы известных пар, тренды и гиды журнала. Наполняется после пилота базы.</div></div>`,
+   `<button class="cta" id="self">Начать планировать</button>`, "path");
+  app.querySelector("#self").onclick = () => { S.path = "self"; go("where"); };
+}
+
+/* 5. Где празднуем */
+function where() {
+  shell(`<div><h1>Где празднуем?</h1></div>
+   <div class="tiles" style="grid-template-columns:1fr">${WHERE.map(w => `<button class="tile${S.where === w[0] ? " on" : ""}" id="w-${w[0]}" data-w="${w[0]}"><b>${esc(w[1])}</b>${w[2] ? `<span>${esc(w[2])}</span>` : ""}</button>`).join("")}</div>`, null, "path");
+  app.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { S.where = b.dataset.w; go("wishes"); });
+}
+
+/* 6. Что хотите на свадьбе */
+function wishes() {
+  const n = Object.values(S.wishes).filter(Boolean).length;
+  shell(`<div><h1>Что хотите на свадьбе?</h1><div class="muted">Отметьте всё, что нужно. Технику и кухню мы добавим сами, если понадобятся.</div></div>
+   <div class="opts">${WISHES.map(w => opt(S.wishes[w[0]], "wi-" + w[0], `data-wi="${w[0]}"`, w[1])).join("")}</div>`,
+   `<button class="cta" id="next">Собрать план · ${n + 1} ${n ? "пунктов" : "пункт"}</button>`, "where");
+  app.querySelectorAll("[data-wi]").forEach(b => b.onclick = () => { S.wishes[b.dataset.wi] = !S.wishes[b.dataset.wi]; keep(wishes); });
+  app.querySelector("#next").onclick = () => { S.data = null; go("result"); };
+}
+
+/* ---------- План: какие профи и почему ---------- */
+function plan() {
+  const items = [], add = (code, why) => { if (!items.find(x => x.code === code)) items.push({code, why}); };
+  if (S.path === "organizer") { add("organizer", "ведёт всю подготовку"); return items; }
+  if (S.where === "hall" || S.where === "unknown") add("venue", "");
+  if (S.where === "nokitchen") { add("venue", ""); add("catering", "на площадке нет своей кухни"); }
+  if (S.where === "outdoor") { add("catering", "праздник не в ресторане"); add("tech", "праздник не в ресторане — нужен звук и свет"); }
+  WISHES.forEach(w => { if (S.wishes[w[0]]) w[2].forEach(c => add(c, "")); });
+  if ((S.wishes.show || S.wishes.dj) && S.where === "nokitchen") add("tech", "живая музыка или DJ, а на площадке своего оборудования может не быть");
+  return items;
+}
+function totalBudget() {
+  const b = S.budget === null ? null : BUDGETS[S.budget][1];
+  if (b) return {sum: b, guess: false};
+  const perGuest = S.style === "lux" ? 70000 : S.style === "intimate" ? 45000 : 40000;
+  return {sum: S.guests * perGuest, guess: true};
+}
+function split(items) {
+  const {sum} = totalBudget(), w = items.reduce((a, x) => a + (WEIGHT[x.code] || 3), 0), spend = sum * (1 - RESERVE);
+  items.forEach(x => { x.amount = spend * (WEIGHT[x.code] || 3) / w; });
+  return {sum, reserve: sum * RESERVE};
+}
+
+/* 7. Результат */
+async function result() {
+  if (!S.cfg) {
+    shell('<div class="muted">Собираю план…</div>', null, null);
+    try { S.cfg = await rpc('pub_brief_config', {p_type: 'Свадьба'}) || []; }
+    catch (e) { return fail(e, result); }
+  }
+  const items = plan(), info = split(items), tb = totalBudget(), cfg = {}; S.cfg.forEach(p => cfg[p.code] = p);
+  items.forEach(x => { const p = cfg[x.code] || {}; x.p = p; x.max = p.unit === "per_guest" ? x.amount / S.guests * 1.15 : x.amount * 1.15; });
+  const sum = `<div class="sum"><span class="pill acc">Свадьба</span>${S.style ? `<span class="pill">${esc(STYLES.find(s => s[0] === S.style)[1])}</span>` : ""}<span class="pill">${esc(S.city)}</span><span class="pill">до ${S.guests} гостей</span>${S.date ? `<span class="pill">${esc(new Date(S.date + "T00:00").toLocaleDateString("ru-RU", {day:"numeric", month:"long"}))}</span>` : ""}</div>`;
+  const head = S.path === "organizer" ? "Организаторы для вашей свадьбы" : "Ваш план и бюджет";
+  const back = S.path === "organizer" ? "path" : "wishes";
+  const paint = inner => {
+    shell(`<div><h1>${head}</h1></div>${sum}${inner}`, `<button class="cta" id="again">Начать заново</button>`, back);
+    app.querySelector("#again").onclick = () => { reset(); render(); };
+    app.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { S.tab = b.dataset.tab; result(); });
+    const h = app.querySelector("#handoff"); if (h) h.onclick = () => { S.path = "organizer"; S.data = null; go("result"); };
+  };
+  const budgetBox = `<div class="need"><div class="hd"><h2>Бюджет</h2><span class="pill ${tb.guess ? "warn" : "acc"}">${tb.guess ? "оценка" : "ваш"} ${mln(info.sum)}</span></div>
+     ${tb.guess ? `<div class="muted small">Вы не указали бюджет. Обычно свадьба на ${S.guests} гостей в ${esc(S.city)} стоит около ${mln(info.sum)} — поправим, когда уточните.</div>` : ""}
+     <div class="gap">${items.map(x => `<span>${esc(x.p.name || x.code)}${x.why ? `<br><span class="muted small">${esc(x.why)}</span>` : ""}</span><span>${mln(x.amount)}${x.p.unit === "per_guest" ? `<br><span class="muted small">≈ ${num(x.amount / S.guests)} ₸ на гостя</span>` : ""}</span>`).join("")}
+     <span class="muted">Непредвиденное</span><span class="muted">${mln(info.reserve)}</span></div></div>`;
+  if (!S.data) {
+    paint(budgetBox + '<div class="muted">Ищу исполнителей в базе…</div>');
+    const req = {city: S.city, guests: S.guests, needs: items.filter(x => x.p.code).map(x => ({key: x.code, roles: x.p.roles, like: x.p.like, unit: x.p.unit, budget_max: Math.round(x.max)}))};
+    try { S.data = await rpc('pub_brief_match', {a: req}) || []; }
+    catch (e) { return fail(e, result); }
+    if (S.step !== "result") return;
+  }
+  const by = {}; S.data.forEach(d => by[d.key] = d);
+  const blocks = items.map(x => {
+    const d = by[x.code] || {rows: [], in_city: 0}, isVenue = x.code === "venue";
+    let body;
+    if (!d.in_city) body = `<div class="note bad"><b>Пока никого.</b> В базе по городу ${esc(S.city)} таких исполнителей нет.</div>`;
+    else if (!d.rows.length) body = `<div class="note warn"><b>В бюджет никто не попал.</b> Всего в городе ${num(d.in_city)} — можно увеличить сумму на эту статью.</div>`;
+    else body = d.rows.slice(0, 3).map(r => `<div class="cand"><span class="nm">${esc(r.name)}</span><span class="pill ${r.verified ? "ok" : "warn"}">${r.verified ? "проверено" : "не проверено"}</span>
+        <span class="mt">${esc([isVenue ? (r.cap ? "до " + num(r.cap) + " гостей" : "вместимость не определена") : r.sub,
+          r.price ? `от ${num(r.price)} ₸ ${UNIT[r.price_unit] || UNIT[x.p.unit] || ""}` : (r.price_note || "цена по запросу")].filter(Boolean).join(" · "))}</span>
+        ${r.desc ? `<span class="mt" style="color:var(--ink)">${esc(r.desc)}</span>` : ""}</div>`).join("") + (d.in_city > 3 ? `<div class="muted small">Ещё ${num(d.matched > 3 ? d.matched - 3 : 0)} подходят по бюджету.</div>` : "");
+    return `<div class="need"><div class="hd"><h2>${esc(x.p.name || x.code)}</h2><span class="pill">до ${x.p.unit === "per_guest" ? num(x.max) + " ₸ на гостя" : mln(x.max)}</span></div>${body}</div>`;
+  }).join("");
+  const handoff = S.path === "self" ? `<div class="need"><h2>Не хотите заниматься всем сами?</h2><div class="muted">Передайте план организатору — он получит ваш бриф, бюджет и выбор.</div><button class="cta" id="handoff">Передать организатору</button></div>` : "";
+  paint((S.path === "organizer" ? "" : budgetBox) + blocks + handoff + '<div class="muted small">Пробная версия: заявки пока никому не отправляются. Доли бюджета — по калькулятору Banqet.kz, уточним по реальным откликам.</div>');
+}
+function fail(e, retry) {
+  const [t, d, can] = errCopy(e);
+  shell(`<div class="err"><b>${esc(t)}</b><span>${esc(d)}</span>${can ? '<button class="link" id="retry">Попробовать снова</button>' : ""}</div>`, null, "path");
+  const r = app.querySelector("#retry"); if (r) r.onclick = retry;
+}
+
+render();
+</script>
