@@ -15,6 +15,21 @@
 - Ключ — публичный (publishable), в `index.html`. Секретные ключи в код не класть.
 - eventchat.kz (прод) не трогать без отдельного решения Кайрата.
 
+## API Eventer Data Base для приложения (публичный ключ, только поля витрины)
+Базовый адрес: `https://hgzxowfegmvxqtryphbd.supabase.co/rest/v1/rpc/<функция>`, метод POST, заголовки `apikey: <publishable key из index.html>`, `Content-Type: application/json`.
+
+| Функция | Тело запроса | Ответ |
+|---|---|---|
+| `pub_brief_config` | `{"p_type":"Свадьба"}` | 17 специалистов: code, name, roles, like, unit, budget, questions |
+| `pub_brief_match` | `{"a":{"city","guests","needs":[{key,roles,like,unit,budget_max}]}}` | по каждой позиции: total, in_city, matched, rows (до 5 карточек: id, name, sub, cap, price, price_unit, verified …) |
+| `pub_price_tiers` | `{"p_city":"Алматы"}` | `{code:[{tier 0..2, min, max, unit, source, samples}]}`. `source="estimate"` — примерные цены, `"market"` — собраны роботом, `"eventer"` — по реальным ценам базы |
+| `pub_vendor_card` | `{"p_id":"<uuid>"}` | подробная карточка: описание, вместимость, цены, языки, типы событий, Instagram, сайт, verified, claimed. Телефона и почты нет |
+| `pub_vendor_search` | `{"q":"текст, ник или телефон"}` | до 10 карточек для «Вы уже есть в Eventer?»: id, name, role, category, city, instagram, phone_hint («•• 48»), claimed. Минимум 3 символа |
+| `pub_vendor_apply` | `{"a":{participant_id?, name, city, category, phone, …остальные поля анкеты}}` | `{id, kind: claim/new, status: pending}`. Обязательны name, city, category, phone. Не больше 5 заявок с одного номера в сутки |
+| `pub_vendor_application_status` | `{"p_id":"<id заявки>"}` | `{status: pending/needs_info/verified/rejected, note}` |
+
+Правила: в интерфейсе показывать только то, что вернула функция; если поля нет — «пока нет данных». Код в WhatsApp пока не подключён: в рабочей версии заявка уходит со статусом «Проверяем», подтверждение номера добавим отдельно.
+
 ## Журнал
 ### 2026-10-15 · GPT
 - В `/vendor-mockup/` добавлен профиль пользователя в логике Яндекс Go: шапка, быстрые действия, «Мой план», «Мои заявки», бизнес-раздел и информация о сервисе.
@@ -93,3 +108,7 @@
 - В `/brief-mockup/` удалены старые дубли `result`, `detail` и `myPlan`; для каждой функции оставлена одна актуальная версия.
 - Из брифа полностью удалены реальные имена, вымышленные рейтинги, «по 48 исполнителям» и `alert()`.
 - В `/vendor-mockup/` имя профиля заменено на вымышленное «Айдос Серік · демо».
+
+### 2026-10-15 · Claude
+- В Eventer Data Base добавлены публичные функции для программирования: pub_price_tiers, pub_vendor_card, pub_vendor_search, pub_vendor_apply, pub_vendor_application_status (описание — в разделе API выше). Таблицы vendor_applications и price_benchmarks закрыты, доступ только через функции.
+- price_benchmarks заполнена примерными ценами (source=estimate) для Алматы и Астаны — те же, что в мокапе. Робот заменит их рыночными после пополнения баланса Claude API.
