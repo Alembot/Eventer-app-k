@@ -1,0 +1,5 @@
+.ww-reel-track{gap:0}
+.ww-reel-card{flex:0 0 100%;width:100%}
+.ww-reel-frame{height:auto;aspect-ratio:9/16;background:#000;overflow:hidden;position:relative}
+.ww-reel-frame iframe{position:absolute;left:0;top:-120px;width:100%;height:calc(100% + 240px);border:0;background:#000;pointer-events:auto}
+@media(max-width:390px){.ww-reel-frame{height:auto}.ww-reel-frame iframe{top:-110px;height:calc(100% + 220px)}}
