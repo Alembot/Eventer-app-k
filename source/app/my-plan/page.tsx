@@ -1,0 +1,7 @@
+"use client";
+import {useEffect,useState} from "react";
+import Link from "next/link";
+import "../simple-screen.css";
+
+type Plan={event?:string;budget?:number;total?:number;city?:string;guests?:number};
+export default function MyPlan(){const [plan,setPlan]=useState<Plan|null>(null);useEffect(()=>{for(const key of ["eventerMyPlan","eventer_plan","myPlan"]){try{const value=localStorage.getItem(key);if(value){setPlan(JSON.parse(value));break}}catch{}}},[]);const money=(n?:number)=>n?`${Math.round(n).toLocaleString("ru-RU")} ₸`:"пока не указано";return <main className="simple-screen plan-screen"><section><span>МОЙ ПЛАН</span><h1>{plan?.event||"Свадьба"}</h1><p>{plan?`${plan.city||"Город не указан"} · ${plan.guests||"—"} гостей`:"Ваш план появится после прохождения свадебного планировщика."}</p><div className="plan-total"><small>Общий бюджет</small><b>{money(plan?.budget)}</b><em>Договорились: {money(plan?.total)} · Внесено: пока нет данных · Осталось: {money(plan?.budget&&plan?.total?plan.budget-plan.total:undefined)}</em></div><div className="plan-grid">{[["Команда","Исполнители и статусы"],["Чек-лист","Задачи и сроки"],["Заявки","Отправленные запросы"],["Сохранённое","Избранные карточки"],["Гости","Список приглашённых"],["Семья","Поделиться планом"]].map(x=><button key={x[0]}><b>{x[0]}</b><small>{x[1]}</small></button>)}</div><Link className="primary-link" href="/brief-mockup/">Создать или изменить план</Link><Link href="/discover?event=wedding">На главную</Link></section></main>}
