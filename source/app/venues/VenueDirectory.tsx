@@ -1,12 +1,5 @@
-"use client";
-import {useState} from "react";
 import "./venues.css";
 import {WeddingBottomNav} from "../WeddingBottomNav";
-
-const venues=[
-  {name:"Oi-Qaragai",place:"Бескайнар · 35 км",rating:"4,8",reviews:"52 отзыва",capacity:"до 180 гостей",price:"по запросу",image:"/wedding-references/venues/drive-4533.jpg",count:"1 / 24",tags:["Банкет","Выездная церемония","Парковка"],available:"Свободна 14 сентября"},
-  {name:"Свадебный двор",place:"Алматы · Медеуский район",rating:"4,7",reviews:"31 отзыв",capacity:"до 120 гостей",price:"от 35 000 ₸",image:"/wedding-references/venues/drive-4534.jpg",count:"1 / 18",tags:["Церемония","Открытая площадка"],available:"Дату уточнит площадка"}
-];
 
 function Icon({name}:{name:"pin"|"user"|"search"|"sparkle"|"calendar"|"users"|"filter"|"heart"|"send"|"home"|"ideas"|"dress"|"saved"}){
   const paths:Record<string,React.ReactNode>={
@@ -19,26 +12,9 @@ function Icon({name}:{name:"pin"|"user"|"search"|"sparkle"|"calendar"|"users"|"f
 }
 
 export function VenueDirectory(){
-  const [active,setActive]=useState("Все");
-  const [saved,setSaved]=useState<string[]>([]);
-  const [notice,setNotice]=useState("");
-  const save=(name:string)=>setSaved(x=>x.includes(name)?x.filter(v=>v!==name):[...x,name]);
   return <main className="venue-page">
-    <header className="venue-head"><a href="/">eventer</a><span><Icon name="pin"/> Алматы</span><a href="/" aria-label="Личный кабинет"><Icon name="user"/></a></header>
-    <section className="venue-title"><span>СВАДЬБА · ПЛОЩАДКИ</span><h1>Площадки для<br/>вашей свадьбы</h1><p>Банкетные залы, загородные пространства и необычные локации.</p></section>
-    <button className="venue-search"><Icon name="search"/><span>Название или район</span><b><Icon name="sparkle"/></b></button>
-    <div className="venue-quick"><button><Icon name="calendar"/>Дата</button><button><Icon name="users"/>Гостей</button><button><Icon name="filter"/>Фильтры<i>2</i></button></div>
-    <nav className="venue-types">{["Все","Банкетные залы","За городом","Отели"].map(x=><button className={active===x?"active":""} onClick={()=>setActive(x)} key={x}>{x}</button>)}</nav>
-    <div className="venue-results"><b>128 площадок</b><button>Рекомендуемые⌄</button></div>
-    {venues.map((venue,index)=><article className="venue-card" key={venue.name}>
-      <div className="venue-photo"><img src={venue.image} alt={venue.name}/><button className={saved.includes(venue.name)?"saved":""} onClick={()=>save(venue.name)} aria-label="Сохранить"><Icon name="heart"/></button><span>{venue.count}</span></div>
-      <div className="venue-info"><div className="venue-name"><div><h2>{venue.name}</h2><p><Icon name="pin"/>{venue.place}</p></div><span><b>{venue.rating}</b>{venue.reviews}</span></div>
-      {index===0&&<div className="venue-tags">{venue.tags.map(x=><span key={x}>{x}</span>)}</div>}
-      <div className="venue-facts"><div><small>Вместимость</small><b>{venue.capacity}</b></div><div><small>Стоимость</small><b>{venue.price}</b></div></div>
-      {index===0&&<div className="availability"><i/><span>{venue.available}</span><small>Отвечает около 2 часов</small></div>}
-      <button className={index===0?"venue-action":"venue-action secondary"} onClick={()=>setNotice(index===0?`Заявка для ${venue.name} добавлена`:`Запрос даты для ${venue.name} создан`)}>{index===0?"Запросить предложение":"Проверить дату"}</button></div>
-    </article>)}
-    {notice&&<div className="venue-toast" role="status" onClick={()=>setNotice("")}>{notice}</div>}
+    <header className="venue-head"><a href="../discover">eventer</a><span><Icon name="pin"/> Алматы</span><a href="../vendor-mockup/" aria-label="Личный кабинет"><Icon name="user"/></a></header>
+    <section className="venue-title"><span>КАТАЛОГ EVENTER</span><h1>Скоро: каталог площадок</h1><p>Здесь появятся площадки из базы Eventer с проверенными параметрами, фотографиями и фильтрами.</p><a className="venue-action" href="../discover">Вернуться на главную</a></section>
     <WeddingBottomNav/>
   </main>;
 }
