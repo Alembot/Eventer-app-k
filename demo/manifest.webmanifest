@@ -2,24 +2,24 @@
   "name": "Eventer",
   "short_name": "Eventer",
   "description": "Создавайте события с Eventer",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/Eventer-app-k/demo/",
+  "scope": "/Eventer-app-k/demo/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ff4d03",
   "icons": [
     {
-      "src": "./eventer-192.png",
+      "src": "/Eventer-app-k/demo/eventer-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "./eventer-512.png",
+      "src": "/Eventer-app-k/demo/eventer-512.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "./eventer-1024.png",
+      "src": "/Eventer-app-k/demo/eventer-1024.png",
       "sizes": "1024x1024",
       "type": "image/png"
     }

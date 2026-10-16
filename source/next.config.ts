@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  basePath: "/Eventer-app-k/demo",
+  assetPrefix: "/Eventer-app-k/demo/",
 };
 
 export default nextConfig;

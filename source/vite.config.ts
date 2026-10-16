@@ -44,6 +44,9 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    // GitHub Pages serves the built client from this subdirectory. Keeping the
+    // base here prevents future builds from reverting assets to domain-root URLs.
+    base: "/Eventer-app-k/demo/",
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
