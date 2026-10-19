@@ -1,4 +1,4 @@
-import {cp, mkdir, writeFile} from "node:fs/promises";
+import {cp, mkdir, readFile, readdir, writeFile} from "node:fs/promises";
 import {fileURLToPath} from "node:url";
 import path from "node:path";
 import {showcaseEvents} from "../app/showcase-data.ts";
@@ -6,6 +6,37 @@ import {showcaseEvents} from "../app/showcase-data.ts";
 const here=path.dirname(fileURLToPath(import.meta.url));
 const sourceRoot=path.resolve(here,"..");
 const demoRoot=path.resolve(sourceRoot,"..","demo");
+const builtRoot=path.join(sourceRoot,"dist","client","Eventer-app-k","demo");
+
+// Vinext writes fresh browser chunks below the configured base path. Copy them
+// into the GitHub Pages demo before syncing public assets; otherwise demo/index.html
+// keeps loading an older ShowcaseClient bundle even though /source was rebuilt.
+await cp(path.join(builtRoot,"_next"),path.join(demoRoot,"_next"),{recursive:true,force:true});
+
+const chunksDir=path.join(builtRoot,"_next","static","chunks");
+const cssDir=path.join(builtRoot,"_next","static","css");
+const chunkFiles=await readdir(chunksDir);
+const cssFiles=await readdir(cssDir);
+const latest=(files:string[],prefix:string)=>files.find((name)=>name.startsWith(prefix));
+const replacements:[RegExp,string|undefined][]=[
+  [/index-[\w-]+\.js/g,latest(chunkFiles,"index-")],
+  [/rolldown-runtime-[\w-]+\.js/g,latest(chunkFiles,"rolldown-runtime-")],
+  [/framework-[\w-]+\.js/g,latest(chunkFiles,"framework-")],
+  [/layout-segment-context-[\w-]+\.js/g,latest(chunkFiles,"layout-segment-context-")],
+  [/ShowcaseClient-[\w-]+\.js/g,latest(chunkFiles,"ShowcaseClient-")],
+  [/WeddingBottomNav-[\w-]+\.js/g,latest(chunkFiles,"WeddingBottomNav-")],
+  [/index\.[\w-]+\.css/g,latest(cssFiles,"index.")],
+  [/ShowcaseClient\.[\w-]+\.css/g,latest(cssFiles,"ShowcaseClient.")],
+  [/WeddingBottomNav\.[\w-]+\.css/g,latest(cssFiles,"WeddingBottomNav.")],
+];
+
+const demoIndex=path.join(demoRoot,"index.html");
+let html=await readFile(demoIndex,"utf8");
+for(const [pattern,replacement] of replacements){
+  if(!replacement) throw new Error(`Missing built asset for ${pattern}`);
+  html=html.replace(pattern,replacement);
+}
+await writeFile(demoIndex,html);
 
 await mkdir(path.join(demoRoot,"api"),{recursive:true});
 
