@@ -1,0 +1,30 @@
+"use client";
+import {useEffect,useMemo,useState} from "react";
+import "./catalog.css";
+
+const API="https://hgzxowfegmvxqtryphbd.supabase.co/rest/v1/rpc/";
+const KEY="sb_publishable_LSSMoXyNchkWJ7c2gIdGxA_GRPdZcWX";
+const BASE=import.meta.env.BASE_URL||"/";
+const categories=[
+ ["venue","Площадки"],["organizer","Организаторы"],["host","Ведущие"],["photo","Фотографы"],["video","Видеографы"],["decor","Декор"],["dj","DJ"],["show","Артисты и шоу"],["dress","Платья"],["makeup","Красота"],["cake","Торты"],["catering","Кейтеринг"],["transport","Транспорт"],["ceremony","Регистрация"],["print","Приглашения"],["tech","Оборудование"]
+] as const;
+type Config={code:string;name:string;roles:string[];like:string[];unit:string};
+type Row={id:string;name?:string;sub?:string;desc?:string;address?:string;cap?:number;price?:number;price_to?:number;price_unit?:string;price_note?:string;verified?:boolean;types?:string[]};
+type Card=Row&{city?:string;category?:string;capacity?:number;description?:string;instagram?:string;website?:string;event_types?:string[];price_from?:number};
+async function rpc(name:string,body:unknown){const r=await fetch(API+name,{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify(body)});if(!r.ok)throw new Error(String(r.status));return r.json()}
+const money=(n?:number)=>n?`${Math.round(n).toLocaleString("ru-RU")} ₸`:"цена по запросу";
+const unit=(u?:string)=>u==="per_guest"?"за гостя":u==="per_hour"?"в час":u==="per_item"?"за единицу":"за работу";
+
+export function CatalogClient(){
+ const [code,setCode]=useState("venue"),[config,setConfig]=useState<Config[]>([]),[rows,setRows]=useState<Row[]>([]),[stats,setStats]=useState<{total?:number;in_city?:number;matched?:number}|null>(null),[detail,setDetail]=useState<Card|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState(false);
+ useEffect(()=>{const q=new URLSearchParams(location.search).get("category");if(q&&categories.some(x=>x[0]===q))setCode(q)},[]);
+ useEffect(()=>{let active=true;setLoading(true);setError(false);(async()=>{try{let cfg=config;if(!cfg.length){cfg=await rpc("pub_brief_config",{p_type:"Свадьба"});if(active)setConfig(cfg)}const item=cfg.find(x=>x.code===code);if(!item)throw new Error("category");const data=await rpc("pub_brief_match",{a:{city:"Алматы",guests:150,needs:[{key:item.code,roles:item.roles,like:item.like,unit:item.unit,budget_max:null}]}});if(active){setRows(data?.[0]?.rows||[]);setStats(data?.[0]||null)}}catch{if(active)setError(true)}finally{if(active)setLoading(false)}})();return()=>{active=false}},[code]);
+ const title=useMemo(()=>config.find(x=>x.code===code)?.name||categories.find(x=>x[0]===code)?.[1]||"Каталог",[config,code]);
+ const choose=(next:string)=>{setCode(next);setDetail(null);history.pushState({},"",`${location.pathname}?category=${next}&event=wedding`)};
+ const open=async(row:Row)=>{setLoading(true);try{setDetail(await rpc("pub_vendor_card",{p_id:row.id}))}catch{setError(true)}finally{setLoading(false)}};
+ const back=()=>detail?setDetail(null):history.length>1?history.back():location.assign(`${BASE}#event=wedding`);
+ useEffect(()=>{const onPop=()=>{const q=new URLSearchParams(location.search).get("category")||"venue";setDetail(null);setCode(q)};addEventListener("popstate",onPop);return()=>removeEventListener("popstate",onPop)},[]);
+ return <main className="catalog-page"><header><button onClick={back} aria-label="Назад">←</button><a href={`${BASE}#start`}><img src={`${BASE}eventer-logo.svg`} alt="Eventer"/></a><span>Алматы</span></header><nav className="catalog-tabs">{categories.map(([id,label])=><button className={id===code?"active":""} onClick={()=>choose(id)} key={id}>{label}</button>)}</nav>{detail?<Detail card={detail} onBack={()=>setDetail(null)}/>:<><section className="catalog-title"><span>КАТАЛОГ EVENTER</span><h1>{title}</h1><p>{stats?.matched?`${stats.matched.toLocaleString("ru-RU")} подходящих карточек в базе · показываем первые проверенные результаты`:"Проверенные участники Eventer Data Base"}</p></section>{loading&&<State text="Загружаем данные…"/>}{error&&<State text="Не удалось загрузить данные" retry={()=>choose(code)}/>} {!loading&&!error&&<section className="catalog-list">{rows.length?rows.map(row=><button className="catalog-card" onClick={()=>open(row)} key={row.id}><div className="catalog-card-top"><span>{row.sub||title}</span>{row.verified&&<b>✓ Проверено</b>}</div><h2>{row.name||"Название не указано"}</h2><p>{row.desc||"Описание пока не заполнено"}</p><div className="catalog-facts">{row.address&&<span>{row.address}</span>}{row.cap&&<span>до {row.cap} гостей</span>}<strong>{row.price?`${money(row.price)} ${unit(row.price_unit)}`:row.price_note||"цена по запросу"}</strong></div></button>):<State text="Подходящих карточек пока нет"/>}</section>}</>}</main>
+}
+function State({text,retry}:{text:string;retry?:()=>void}){return <div className="catalog-state"><p>{text}</p>{retry&&<button onClick={retry}>Повторить</button>}</div>}
+function Detail({card,onBack}:{card:Card;onBack:()=>void}){const price=card.price_from||card.price;return <section className="vendor-detail"><button className="detail-back" onClick={onBack}>← К списку</button><div className="detail-status">{card.verified?"✓ Проверено":"Пока не проверено"}</div><h1>{card.name||"Название не указано"}</h1><p>{card.category||card.sub||"Категория не указана"} · {card.city||"Алматы"}</p><article><h2>О карточке</h2><p>{card.description||card.desc||"Пока нет данных"}</p></article><article><h2>Стоимость</h2><p>{price?`${money(price)} ${unit(card.price_unit)}`:card.price_note||"Пока нет данных"}</p></article><article><h2>Вместимость</h2><p>{card.capacity||card.cap?`до ${card.capacity||card.cap} гостей`:"Пока нет данных"}</p></article><article><h2>Подходит для</h2><p>{(card.event_types||card.types||[]).join(" · ")||"Пока нет данных"}</p></article><article><h2>Контакты</h2><p>{card.instagram?`Instagram: ${card.instagram}`:"Instagram: пока нет данных"}<br/>{card.website?`Сайт: ${card.website}`:"Сайт: пока нет данных"}</p></article><button className="request-button">Узнать, свободна ли дата</button></section>}

@@ -48,9 +48,9 @@ const businessTypes=[
 function BusinessSelect({onBack}:{onBack:()=>void}){return <section className="business-select"><button className="entry-back" onClick={onBack}>← Для бизнеса</button><h1>Какое событие вы организуете?</h1><div className="business-tile-grid">{businessTypes.map(([title,image])=><button key={title} style={{backgroundImage:`url(${publicUrl(image)})`}} onClick={()=>window.location.href=publicUrl("nav-mockup/")}><b>{title}</b><i>→</i></button>)}</div></section>}
 
 const planning=[
- {label:"Площадки",href:"./venues/"},{label:"Декор",href:"#wedding-decor"},{label:"Платья",href:"#wedding-dresses"},{label:"Идеи",href:"#wedding-ideas"},
- {label:"Оборудование",href:"#wedding-videographers"},{label:"Love Story",href:"#wedding-love-story"},{label:"Регистрация",href:"#wedding-ceremony"},{label:"Видеографы",href:"#wedding-videographers"},
- {label:"Фотографы",href:"#wedding-love-story"},{label:"Лимузины",href:"#wedding-limos"},{label:"Организатор",href:"#wedding-ideas"},{label:"Свадебный торт",href:"#wedding-cakes"}
+ {label:"Площадки",code:"venue"},{label:"Декор",code:"decor"},{label:"Платья",code:"dress"},{label:"Идеи",code:"organizer"},
+ {label:"Оборудование",code:"tech"},{label:"Love Story",code:"photo"},{label:"Регистрация",code:"ceremony"},{label:"Видеографы",code:"video"},
+ {label:"Фотографы",code:"photo"},{label:"Лимузины",code:"transport"},{label:"Организатор",code:"organizer"},{label:"Свадебный торт",code:"cake"}
 ];
 const realWeddings=[
  ["Данияр и Сауле","15 фото","https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=86"],
@@ -98,7 +98,7 @@ function WeddingPage({onBack}:{onBack:()=>void}){return <div className="ww-page 
  <button className="ww-back" onClick={onBack}>← Выбрать повод</button>
  <div className="wedding-heading"><span>СВАДЬБА</span><h1>Ваша свадьба.<br/>Ваша история.</h1></div>
  <div className="ww-cover"><a className="find-style" href="#wedding-style">Найти свой стиль ↗</a></div>
- <section className="ww-mobile-section ww-category-section" id="wedding-pros"><SectionTitle title="Свадебные профи" text="Соберите команду для своей свадьбы."/><div className="ww-category-strip">{planning.map((x,i)=><a className="ww-round-category" key={x.label} href={x.href}><i className={`category-art art-${i+1}`}/><b>{x.label}</b></a>)}</div></section>
+ <section className="ww-mobile-section ww-category-section" id="wedding-pros"><SectionTitle title="Свадебные профи" text="Соберите команду для своей свадьбы."/><div className="ww-category-strip">{planning.map((x,i)=><a className="ww-round-category" key={x.label} href={publicUrl(`catalog/?category=${x.code}&event=wedding`)}><i className={`category-art art-${i+1}`}/><b>{x.label}</b></a>)}</div></section>
  <div id="wedding-love-story"><ReelShelf videos={weddingReels} eyebrow="Вдохновение в движении" title="Почувствуйте атмосферу"/></div>
  <section className="ww-detail-pause" id="wedding-style"><div className="ww-reel-eyebrow">Найдите своё настроение</div><h2>Выберите стиль свадьбы</h2><div className="ww-style-track"><article><img src={publicUrl("wedding-references/decor/1.jpg")} alt="Современная свадьба"/><b>Современная классика</b></article><article><img src={publicUrl("wedding-references/ceremony/2.jpg")} alt="Свадьба на природе"/><b>Свадьба на природе</b></article><article><img src={publicUrl("wedding-references/venues/3.jpg")} alt="Городская свадьба"/><b>Городской шик</b></article><article><img src={publicUrl("wedding-references/decor/5.jpg")} alt="Романтическая свадьба"/><b>Нежная романтика</b></article><article><img src={publicUrl("wedding-references/ceremony/5.jpg")} alt="Свадьба в горах"/><b>Свадьба в горах</b></article></div></section>
  <section className="ww-feel-banner" id="wedding-assistant"><div className="ww-reel-eyebrow">СВАДЕБНЫЙ ПЛАНИРОВЩИК</div><h2>Не знаете, с чего начать?</h2><p>Eventer рассчитает бюджет и подберёт исполнителей.</p><button className="ww-assistant-button" onClick={()=>window.location.href=publicUrl("brief-mockup/?from=wedding#event")}>Начать →</button></section>
