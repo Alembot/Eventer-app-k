@@ -50,4 +50,15 @@ for(const event of showcaseEvents){
 // impossible when a new image is added under source/public.
 await cp(path.join(sourceRoot,"public"),demoRoot,{recursive:true,force:true});
 
+// CSS assets are rebased by Vinext below /_next/static/. Keep the visual asset
+// folders there as well as at the public root so the wedding hero, 3D category
+// icons and entry tiles never disappear from the GitHub Pages build.
+for(const folder of ["wedding-ui","wedding-references","business-tiles","fonts"]){
+  await cp(
+    path.join(sourceRoot,"public",folder),
+    path.join(demoRoot,"_next","static",folder),
+    {recursive:true,force:true},
+  );
+}
+
 console.log(`Demo data and public assets synced to ${demoRoot}`);
