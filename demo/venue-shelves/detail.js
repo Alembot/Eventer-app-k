@@ -36,7 +36,7 @@ async function openVenueCard(id) {
       <p class="venue-detail__meta">${venueValue(d.category)} · ${venueValue(d.city)}</p>
       <article class="venue-detail__block"><h2>О площадке</h2><p>${venueValue(d.description)}</p></article>
       <article class="venue-detail__block"><h2>Вместимость</h2><p>${d.capacity ? `До ${esc(d.capacity)} гостей` : venueValue(d.capacity_note)}</p></article>
-      <article class="venue-detail__block"><h2>Стоимость</h2><p>${d.price_from || d.price_to ? `${venueValue(d.price_from)}–${venueValue(d.price_to)} ₸ · ${venueValue(d.price_unit)}` : 'Пока нет данных'}</p></article>
+      <article class="venue-detail__block"><h2>Стоимость</h2><p>${d.price_from || d.price_to ? `${d.price_from ? 'от '+Number(d.price_from).toLocaleString('ru-RU')+' ₸' : ''}${d.price_to ? ' до '+Number(d.price_to).toLocaleString('ru-RU')+' ₸' : ''} · ${venueValue(d.price_unit)}` : 'Пока нет данных'}</p></article>
       <article class="venue-detail__block"><h2>Подходит для</h2><p>${venueList(d.event_types)}</p></article>
       <article class="venue-detail__block"><h2>Контакты</h2><p>Instagram: ${venueValue(d.instagram)}<br>Сайт: ${venueValue(d.website)}</p></article>
       <button class="venue-detail__action" type="button">Узнать, свободна ли дата</button>
