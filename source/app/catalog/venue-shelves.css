@@ -1,0 +1,10 @@
+.venue-shelves{display:grid;gap:8px;padding-bottom:28px}
+.venue-shelf{padding:24px 0 20px;border-top:1px solid #e6e1da}
+.venue-shelf>header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:0 16px 14px}
+.venue-shelf h2{font-size:23px;line-height:1.08;margin:0 0 6px}
+.venue-shelf header p{max-width:330px;margin:0;color:#77716a;font-size:11px;line-height:1.4}
+.venue-shelf header button{flex:none;border:0;background:none;color:#c34d22;padding:0 0 2px;font-size:10px}
+.venue-row{display:flex;gap:11px;overflow-x:auto;padding:2px 16px 15px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.venue-row::-webkit-scrollbar{display:none}
+.venue-row .catalog-card{flex:0 0 82%;scroll-snap-align:start;min-height:210px}
+.venue-empty{margin:0 16px;padding:23px;border-radius:18px;background:#efede8;color:#77716a;text-align:center;font-size:11px}
