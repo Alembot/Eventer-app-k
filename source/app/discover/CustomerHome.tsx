@@ -16,23 +16,24 @@ async function rpc<T>(name:string,body:unknown):Promise<T>{const r=await fetch(A
 type TypeCode="business"|"culture"|"public"|"corporate";
 type VenueChip={label:string;cat?:string;sub?:string};
 type TagChip={label:string;re:string};
-type Shelf={title:string;hint:string;share?:string;kind:"venue"|"vendor";cat?:string;chips?:TagChip[]};
+type Shelf={title:string;hint:string;share?:string;kind:"venue"|"vendor";cat?:string;sub?:string;tags?:string;chips?:TagChip[]};
 // Фильтры технического обеспечения — по справочнику EVENTER Atlas v8 (аренда звука, света, экранов/проекторов, сцены/подиумов, спецэффекты/пиротехника, лазерное шоу, 3D mapping).
 const TECH_CHIPS:TagChip[]=[{label:"Свет",re:"свет|light"},{label:"Звук",re:"звук|sound|аудио"},{label:"Видео и LED-экраны",re:"видео|LED|экран|проектор|мультимед|mapping"},{label:"Сценические конструкции",re:"сцен|подиум|конструкц|stage"},{label:"Риггинг",re:"ригг|rigging|подвес|ферм"},{label:"Спецэффекты",re:"спецэфф|пиротех|лазер|дым|конфетти|SFX"}];
 type Territory={code:TypeCode;title:string;short:string;img:string;venueChips:VenueChip[];shelves:Shelf[];plan:[string,string][];tips:string[]};
 // Общие полки (решение Кайрата 22.10): одна логика для всех направлений, различаются набор, порядок и названия.
-const TECH="Техническое обеспечение|Обслуживание/прокат";
+const TECH="Техническое обеспечение";
 const ARTISTS="Музыкальная программа|DJ/диджеи|Прочие специалисты";
 const sh={
  venue:(share?:string):Shelf=>({title:"Площадки",hint:"Выберите тип площадки на полке",share,kind:"venue"}),
- catering:(title:string,share?:string):Shelf=>({title,hint:"Кейтеринг, бар, обслуживание",share,kind:"vendor",cat:"Кейтеринг"}),
+ catering:(title:string,share?:string):Shelf=>({title,hint:"Кейтеринг, бар, обслуживание",share,kind:"vendor",cat:"Кейтеринг",sub:"Кейтеринговые компании|Выездной кейтеринг|Событийный кейтеринг"}),
  tech:(share?:string):Shelf=>({title:"Техническое обеспечение",hint:"Свет, звук, видео и LED-экраны, сцена, риггинг, спецэффекты",share,kind:"vendor",cat:TECH,chips:TECH_CHIPS}),
  artists:(title:string,hint:string,share?:string):Shelf=>({title,hint,share,kind:"vendor",cat:ARTISTS}),
  organizers:(title:string,share?:string):Shelf=>({title,hint:"Организация под ключ",share,kind:"vendor",cat:"Ивент-агентства"}),
  decor:(title:string,share?:string):Shelf=>({title,hint:"Оформление, брендинг, фотозоны, навигация",share,kind:"vendor",cat:"Оформление/декор"}),
  specialists:(hint:string):Shelf=>({title:"Специалисты",hint,kind:"vendor"}),
  photo:():Shelf=>({title:"Фото и видео",hint:"Репортаж, видео, трансляция",kind:"vendor",cat:"Фото и видео"}),
- other:(title:string,hint:string,share?:string):Shelf=>({title,hint,share,kind:"vendor"})
+ other:(title:string,hint:string,share?:string):Shelf=>({title,hint,share,kind:"vendor"}),
+ logistics:(title:string,hint:string):Shelf=>({title,hint,kind:"vendor",cat:"Обслуживание/прокат",sub:"Трансфер/прокат авто"})
 };
 // Порядок — по значимости статей бюджета (мировые ориентиры: деловые — кейтеринг 20–40%, площадка 15–30%, техника 10–25%, спикеры 5–20%;
 // корпоративы — площадка 25–35%, кейтеринг 35–45%, развлечения 15–25%; концерты — гонорар артиста главная статья, продакшн 30–40%, билетная комиссия 3–5%).
@@ -40,29 +41,29 @@ const territories:Territory[]=[
  {code:"business",title:"Деловые события",short:"Деловые",img:"business-tiles/biz-business.png",
   venueChips:[{label:"Конференц-залы и отели",cat:"Бизнес площадки"},{label:"Выставочные и креативные",cat:"Выставочные залы и галереи|Креативные площадки"}],
   shelves:[sh.venue("15–30% бюджета"),sh.catering("Кейтеринг и кофе-брейки","20–40% бюджета"),sh.tech("10–25% бюджета"),
-   sh.artists("Спикеры, модераторы и ведущие","Модераторы, ведущие, приглашённые спикеры","5–20% бюджета"),sh.organizers("Организаторы деловых событий","10–15% бюджета"),
+   {...sh.artists("Спикеры, модераторы и ведущие","Модераторы, ведущие, приглашённые спикеры","5–20% бюджета"),tags:"модератор|делов|конференц|форум|бизнес|корпоратив"},sh.organizers("Организаторы деловых событий","10–15% бюджета"),
    sh.other("Регистрация участников","Онлайн-регистрация, бейджи, стойки, сканеры"),sh.other("Синхронный перевод","Переводчики, кабины, приёмники"),
-   sh.decor("Оформление и брендинг","около 5% бюджета"),sh.specialists("Технические директора, стейдж-менеджеры, координаторы"),sh.photo(),sh.other("Трансфер и проживание","Трансфер спикеров и гостей, отели")],
+   sh.decor("Оформление и брендинг","около 5% бюджета"),sh.specialists("Технические директора, стейдж-менеджеры, координаторы"),sh.photo(),sh.logistics("Трансфер и проживание","Трансфер спикеров и гостей, отели")],
   plan:[["За 2–3 месяца","Дата, бюджет, площадка, спикеры"],["За 1 месяц","Техника, кейтеринг, модератор, приглашения"],["За 2 недели","Регистрация участников, брендинг"],["За 1–2 дня","Монтаж и технический прогон"]],
   tips:["Как посчитать бюджет конференции","5 ошибок в техническом райдере","Гибридный формат: когда он действительно нужен","Тренды деловых событий 2026"]},
  {code:"corporate",title:"Корпоративные события",short:"Корпоративные",img:"business-tiles/biz-corporate.png",
   venueChips:[{label:"Банкетные залы",sub:"Банкетные залы"},{label:"Рестораны",sub:"Рестораны"},{label:"Загородные и open air",cat:"Загородные площадки|Летние площадки"},{label:"Креативные",cat:"Креативные площадки"}],
   shelves:[sh.venue("25–35% бюджета"),sh.catering("Кейтеринг и банкет","35–45% бюджета"),sh.artists("Артисты и ведущие","Ведущие, музыканты, шоу, DJ, аниматоры","15–25% бюджета"),
-   sh.organizers("Организаторы корпоративов"),sh.tech("вместе с декором 5–10%"),sh.decor("Оформление и декор"),sh.photo(),sh.specialists("Режиссёры, стейдж-менеджеры, координаторы"),sh.other("Логистика и транспорт","Развоз сотрудников, доставка")],
+   sh.organizers("Организаторы корпоративов"),sh.tech("вместе с декором 5–10%"),sh.decor("Оформление и декор"),sh.photo(),sh.specialists("Режиссёры, стейдж-менеджеры, координаторы"),sh.logistics("Логистика и транспорт","Развоз сотрудников, доставка")],
   plan:[["За 2–3 месяца","Дата, бюджет, площадка — на декабрь бронируют заранее"],["За 1–1,5 месяца","Ведущий, программа, DJ"],["За 2 недели","Меню, рассадка, трансфер"],["За 1 день","Монтаж и прогон"]],
   tips:["Новогодний корпоратив: что бронировать в октябре","Как удержать внимание 300 сотрудников","Тимбилдинг или банкет: что выбрать","Тренды корпоративов 2026"]},
  {code:"culture",title:"Концерты и фестивали",short:"Концерты и фестивали",img:"business-tiles/biz-concert.png",
   venueChips:[{label:"Концертные",sub:"Концертные залы"},{label:"Open air",cat:"Летние площадки|Загородные площадки"},{label:"Театральные",sub:"Театральные залы"},{label:"Спортивные и арены",cat:"Спортивные площадки"},{label:"Выставочные и креативные",cat:"Выставочные залы и галереи|Креативные площадки|Музеи"}],
   shelves:[{title:"Booking артистов",hint:"Промоутеры, букинг-агентства, менеджеры артистов",share:"гонорар артиста — главная статья концерта",kind:"vendor",cat:"Ивент-агентства"},sh.venue(),sh.tech("продакшн 30–40% бюджета"),
    sh.other("Билетный сервис","Билетные операторы, контроль входа","комиссия 3–5% с билета"),sh.other("Маркетинг и реклама","Наружная реклама, digital, СМИ, PR"),sh.other("Безопасность","Охрана, контроль толпы, медицина"),
-   sh.specialists("Технические директора, стейдж-менеджеры, режиссёры"),sh.photo(),sh.other("Логистика и транспорт","Трансфер, отели, грузоперевозки, бытовой райдер")],
+   sh.specialists("Технические директора, стейдж-менеджеры, режиссёры"),sh.photo(),sh.logistics("Логистика и транспорт","Трансфер, отели, грузоперевозки, бытовой райдер")],
   plan:[["За 3–6 месяцев","Артист, площадка, бюджет"],["За 2 месяца","Технический райдер, билетный сервис"],["За 1 месяц","Промо и продажи"],["За 1–2 дня","Монтаж, саундчек, прогон"]],
   tips:["Что проверить в райдере артиста","Как считать вместимость зала под концерт","Билетный сервис: на что смотреть в договоре","Тренды концертов и фестивалей 2026"]},
  {code:"public",title:"Общественные события",short:"Общественные",img:"business-tiles/biz-public.png",
   venueChips:[{label:"Open air",cat:"Летние площадки"},{label:"Спортивные",cat:"Спортивные площадки"},{label:"Концертные и театральные",cat:"Концертные площадки"},{label:"Выставочные",cat:"Выставочные залы и галереи|Музеи"},{label:"Конференц-залы",cat:"Бизнес площадки"}],
   shelves:[sh.venue(),sh.tech("с инфраструктурой 30–40% бюджета"),sh.other("Безопасность и медицина","Охрана, стюарды, пункт первой помощи, скорая"),
    sh.artists("Артисты и ведущие","Ведущие, артисты, аниматоры"),sh.organizers("Организаторы общественных событий"),sh.catering("Кейтеринг и фуд-корт"),
-   sh.decor("Навигация и брендинг"),sh.specialists("Технические директора, стейдж-менеджеры, координаторы волонтёров"),sh.photo(),sh.other("Логистика и транспорт","Подвоз гостей и команды, грузоперевозки")],
+   sh.decor("Навигация и брендинг"),sh.specialists("Технические директора, стейдж-менеджеры, координаторы волонтёров"),sh.photo(),sh.logistics("Логистика и транспорт","Подвоз гостей и команды, грузоперевозки")],
   plan:[["За 2–3 месяца","Площадка, бюджет, согласования с акиматом"],["За 1 месяц","Программа, техника, подрядчики"],["За 2 недели","Информирование, навигация"],["За 1–2 дня","Монтаж, безопасность, прогон"]],
   tips:["Какие согласования нужны для городского события","Безопасность массового мероприятия: чек-лист","Как работать с волонтёрами","Тренды городских событий 2026"]}
 ];
@@ -105,7 +106,7 @@ export function CustomerHome(){
  </>}
  {screen==="dir"&&byCode(arg)&&<TerritoryScreen t={byCode(arg)!} go={go} swap={swap}/>}
  {screen==="venues"&&<CatalogList key={hash} kind="venue" type={arg} chip={Number(extra??-1)} go={go} title={byCode(arg)?`Площадки · ${byCode(arg)!.title}`:"Все площадки"}/>}
- {screen==="vendors"&&<CatalogList key={hash} kind="vendor" type={extra??""} category={extra2?.split("~").join("|")} tagChip={Number(extra3??-1)} go={go} title={`${arg}${byCode(extra??"")?` · ${byCode(extra!)!.title}`:""}`}/>}
+ {screen==="vendors"&&byCode(arg)&&orderShelves(byCode(arg)!.shelves)[Number(extra)]&&<CatalogList key={hash} kind="vendor" type={arg} shelf={orderShelves(byCode(arg)!.shelves)[Number(extra)]} tagChip={Number(extra2??-1)} go={go} title={`${orderShelves(byCode(arg)!.shelves)[Number(extra)].title} · ${byCode(arg)!.title}`}/>}
  {screen==="search"&&<CatalogList key={hash} kind="any" type="" query={arg} go={go} title={`Поиск: «${arg}»`}/>}
  {screen==="new"&&<Prepare title={byCode(arg)?.title??""}/>}
  {screen==="assistant"&&<Prepare title=""/>}
@@ -122,7 +123,7 @@ function Header({onLogo}:{onLogo?:()=>void}){return <header className="ch-header
 
 function TerritoryScreen({t,go,swap}:{t:Territory;go:(h:string)=>void;swap:(h:string)=>void}){
  return <section className="ch-block ch-dir"><span className="ch-eyebrow">НАПРАВЛЕНИЕ · АЛМАТЫ</span><h1>{t.title}</h1>
-  {orderShelves(t.shelves).map(s=>s.kind==="venue"?<VenueShelf key={t.code+s.title} t={t} s={s} go={go}/>:<ShelfRow key={t.code+s.title} sh={s} type={t.code} go={go}/>)}
+  {orderShelves(t.shelves).map((s,i)=>s.kind==="venue"?<VenueShelf key={t.code+s.title} t={t} s={s} go={go}/>:<ShelfRow key={t.code+s.title} sh={s} type={t.code} go={go} idx={i}/>)}
   <p className="ch-note">Полки — по значимости статей бюджета, резерв 10–15% закладывайте всегда. Исполнители — только с основным профилем «{t.short.toLowerCase()}».</p>
   <h2>С чего начать</h2>
   <div className="ch-plan">{t.plan.map(([w,x])=><div key={w}><b>{w}</b><span>{x}</span></div>)}</div>
@@ -140,27 +141,27 @@ function VenueShelf({t,s,go}:{t:Territory;s:Shelf;go:(h:string)=>void}){
   <div className="ch-shelf">{!page&&!err&&<div className="ch-card ghost"/>}{page?.items.map(v=><VenueCard key={v.id} v={v}/>)}
    {(err||(page&&page.total===0))&&<article className="ch-card ch-card-empty"><b>{err?"Не удалось загрузить":"Собираем площадки этого типа"}</b></article>}</div></div>}
 
-function ShelfRow({sh,type,go}:{sh:Shelf;type:TypeCode;go:(h:string)=>void}){
+function ShelfRow({sh,type,go,idx}:{sh:Shelf;type:TypeCode;go:(h:string)=>void;idx:number}){
  const [page,setPage]=useState<Page|null>(null),[err,setErr]=useState(false),[chip,setChip]=useState(-1);
- const has=!!sh.cat,tags=chip<0?null:sh.chips![chip].re;
- useEffect(()=>{if(!has)return;setPage(null);setErr(false);rpc<Page>("pub_catalog_v2",{p_type:type,p_kind:"vendor",p_category:sh.cat,p_tags:tags,p_limit:8}).then(setPage).catch(()=>setErr(true))},[type,sh.title,chip]);
+ const has=!!(sh.cat||sh.tags),tags=chip<0?sh.tags??null:sh.chips![chip].re;
+ useEffect(()=>{if(!has)return;setPage(null);setErr(false);rpc<Page>("pub_catalog_v2",{p_type:type,p_kind:"vendor",p_category:sh.cat??null,p_sub:sh.sub??null,p_tags:tags,p_limit:8}).then(setPage).catch(()=>setErr(true))},[type,sh.title,chip]);
  return <div className="ch-shelfrow">
-  <div className="ch-sec"><div><h2>{sh.title}</h2><small>{sh.share??sh.hint}</small></div>{page&&page.total>0&&<button onClick={()=>go(`vendors=${sh.title}|${type}|${sh.cat!.split("|").join("~")}|${chip}`)}>Все {page.total} →</button>}</div>
+  <div className="ch-sec"><div><h2>{sh.title}</h2><small>{sh.share??sh.hint}</small></div>{page&&page.total>0&&<button onClick={()=>go(`vendors=${type}|${idx}|${chip}`)}>Все {page.total} →</button>}</div>
   {sh.chips&&<div className="ch-chips ch-mini"><button className={chip<0?"on":""} onClick={()=>setChip(-1)}>Все</button>{sh.chips.map((c,i)=><button key={c.label} className={chip===i?"on":""} onClick={()=>setChip(i)}>{c.label}</button>)}</div>}
   <div className="ch-shelf">
    {has&&!page&&!err&&<div className="ch-card ghost"/>}
    {page?.items.map(v=><VenueCard key={v.id} v={v}/>)}
-   {(!has||(page&&page.total===0)||err)&&<article className="ch-card ch-card-empty"><b>Собираем профильных исполнителей</b><small>{sh.hint}</small></article>}
+   {(!has||(page&&page.total===0)||err)&&<article className="ch-card ch-card-empty"><b>{err?"Не удалось загрузить":"Пока нет в базе — добавляем"}</b><small>{sh.hint}</small></article>}
   </div></div>}
 
-function VenueCard({v}:{v:Item}){return <article className="ch-card"><span className="ch-card-sub">{v.subcategory??v.category}</span><b>{v.name}</b><small>{v.capacity?`до ${v.capacity} гостей`:v.category.includes("площадк")?"вместимость не указана":(v.description??"")}</small>{v.address&&<small className="addr">{v.address.replace(/^Алматы,\s*/,"")}</small>}</article>}
+function VenueCard({v}:{v:Item}){return <article className="ch-card"><b>{v.name}</b><small>{v.capacity?`до ${v.capacity} гостей`:v.category.includes("площадк")?"вместимость не указана":(v.description||v.subcategory||"")}</small>{v.address&&<small className="addr">{v.address.replace(/^Алматы,\s*/,"")}</small>}</article>}
 
-function CatalogList({kind,type,category,query,go,title,chip:chip0=-1,tagChip:tag0=-1}:{kind:"venue"|"vendor"|"any";type:string;category?:string;query?:string;go:(h:string)=>void;title:string;chip?:number;tagChip?:number}){
- const tagChips=category===TECH?TECH_CHIPS:null,[tc,setTc]=useState(isNaN(tag0)?-1:tag0);
+function CatalogList({kind,type,shelf,query,go,title,chip:chip0=-1,tagChip:tag0=-1}:{kind:"venue"|"vendor"|"any";type:string;shelf?:Shelf;query?:string;go:(h:string)=>void;title:string;chip?:number;tagChip?:number}){
+ const category=shelf?.cat,tagChips=shelf?.chips??null,[tc,setTc]=useState(isNaN(tag0)?-1:tag0);
  const terr=byCode(type),[chip,setChip]=useState(isNaN(chip0)?-1:chip0);
  const [sub,setSub]=useState<string|null>(null),[guests,setGuests]=useState(0),[page,setPage]=useState<Page|null>(null),[more,setMore]=useState<Item[]>([]),[err,setErr]=useState(false),[loading,setLoading]=useState(false);
  const vc=kind==="venue"&&terr?chipArgs(chip<0?terr.venueChips:[terr.venueChips[chip]]):null;
- const args=(offset:number)=>({p_type:type||null,p_kind:kind,p_category:vc?vc.p_category:category??null,p_sub:vc?vc.p_sub:sub,p_min_guests:guests||null,p_q:query??null,p_tags:tagChips&&tc>=0?tagChips[tc].re:null,p_limit:30,p_offset:offset});
+ const args=(offset:number)=>({p_type:type||null,p_kind:kind,p_category:vc?vc.p_category:category??null,p_sub:vc?vc.p_sub:(shelf?.sub??sub),p_min_guests:guests||null,p_q:query??null,p_tags:tagChips&&tc>=0?tagChips[tc].re:(shelf?.tags??null),p_limit:30,p_offset:offset});
  useEffect(()=>{setPage(null);setMore([]);setErr(false);rpc<Page>("pub_catalog_v2",args(0)).then(setPage).catch(()=>setErr(true))},[sub,guests,chip,tc]);
  const loadMore=()=>{if(!page)return;setLoading(true);rpc<Page>("pub_catalog_v2",args(30+more.length)).then(p=>setMore(m=>[...m,...p.items])).catch(()=>setErr(true)).finally(()=>setLoading(false))};
  const items=[...(page?.items??[]),...more];
@@ -174,7 +175,7 @@ function CatalogList({kind,type,category,query,go,title,chip:chip0=-1,tagChip:ta
   {err&&<p className="ch-note">Не удалось загрузить. Проверьте интернет и попробуйте ещё раз.</p>}
   {!page&&!err&&<p className="ch-note">Загружаем…</p>}
   {page&&page.total===0&&<div className="ch-empty"><p>Пока никого не нашли по этим условиям.</p><button className="ch-cta" onClick={()=>go("home")}>На главную</button></div>}
-  <div className="ch-rows">{items.map(v=><article key={v.id} className="ch-row"><span className="ch-card-sub">{v.subcategory??v.category}</span><b>{v.name}</b><small>{[v.capacity?`до ${v.capacity} гостей`:null,v.address?.replace(/^Алматы,\s*/,"")].filter(Boolean).join(" · ")||"Карточка дозаполняется"}</small></article>)}</div>
+  <div className="ch-rows">{items.map(v=><article key={v.id} className="ch-row">{kind!=="venue"&&v.subcategory&&<span className="ch-card-sub">{v.subcategory}</span>}<b>{v.name}</b><small>{[v.capacity?`до ${v.capacity} гостей`:null,v.address?.replace(/^Алматы,\s*/,"")].filter(Boolean).join(" · ")||"Карточка дозаполняется"}</small></article>)}</div>
   {page&&items.length<page.total&&<button className="ch-cta" disabled={loading} onClick={loadMore}>{loading?"Загружаем…":"Показать ещё"}</button>}
  </section>}
 
