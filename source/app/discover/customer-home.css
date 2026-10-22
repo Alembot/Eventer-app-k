@@ -58,3 +58,5 @@
 .ch-h1s{font-size:24px!important}.ch-count{margin:0 0 6px!important;color:#5C5850;font-size:14px}
 .ch-rows{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .ch-row{background:#fff;border-radius:16px;padding:13px 16px;display:flex;flex-direction:column;gap:3px}.ch-row b{font-size:15px}.ch-row small{font-size:13px;color:#5C5850}
+.ch-shelfrow .ch-sec{align-items:flex-end}.ch-shelfrow .ch-sec small{display:block;font-size:13px;color:#75716A;margin-top:3px}
+.ch-card-empty{background:#F0EEE9;box-shadow:none;justify-content:center}.ch-card-empty b{font-size:14px;color:#5C5850}

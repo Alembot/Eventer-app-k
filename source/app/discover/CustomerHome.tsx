@@ -14,13 +14,27 @@ const KEY="sb_publishable_LSSMoXyNchkWJ7c2gIdGxA_GRPdZcWX";
 async function rpc<T>(name:string,body:unknown):Promise<T>{const r=await fetch(API+name,{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify(body)});if(!r.ok)throw new Error(String(r.status));return r.json()}
 
 type TypeCode="business"|"culture"|"public"|"corporate";
-type Territory={code:TypeCode;title:string;short:string;img:string;vendors:[string,string][];prices:[string,string][];plan:[string,string][];tips:string[]};
+type Shelf={title:string;hint:string;share?:string;kind:"venue"|"vendor";cat?:string;price?:string};
+type Territory={code:TypeCode;title:string;short:string;img:string;vendors:[string,string][];prices:[string,string][];plan:[string,string][];tips:string[];shelves?:Shelf[]};
+// Полки делового события — по значимости в бюджете (мировые ориентиры: F&B 20–40%, площадка 15–30%, AV 10–25%, спикеры 5–20%, организация 10–15%, оформление ~5%).
+const businessShelves:Shelf[]=[
+ {title:"Площадка",hint:"Конференц-залы, бизнес-отели",share:"15–30% бюджета",kind:"venue"},
+ {title:"Кейтеринг и кофе-брейки",hint:"Кофе-брейк, ланч, фуршет",share:"20–40% бюджета",kind:"vendor",cat:"Кейтеринг",price:"catering"},
+ {title:"Техника и трансляция",hint:"Звук, свет, экраны, онлайн-трансляция",share:"10–25% бюджета",kind:"vendor",cat:"Техническое обеспечение",price:"tech"},
+ {title:"Спикеры и модераторы",hint:"Модератор, ведущий, приглашённые спикеры",share:"5–20% бюджета",kind:"vendor",price:"host"},
+ {title:"Организация под ключ",hint:"Ивент-агентства с профилем деловых событий",share:"10–15% бюджета",kind:"vendor",cat:"Ивент-агентства",price:"organizer"},
+ {title:"Регистрация участников",hint:"Онлайн-регистрация, бейджи, стойки, сканеры",kind:"vendor"},
+ {title:"Синхронный перевод",hint:"Переводчики, кабины, приёмники",kind:"vendor"},
+ {title:"Оформление и брендинг",hint:"Пресс-волл, сцена, навигация, застройка",share:"около 5% бюджета",kind:"vendor",cat:"Оформление/декор",price:"print"},
+ {title:"Фото и видео",hint:"Репортаж, запись выступлений",kind:"vendor",cat:"Фото и видео",price:"photo"},
+ {title:"Трансфер и проживание",hint:"Трансфер спикеров и гостей, отели",kind:"vendor",price:"transport"}
+];
 const territories:Territory[]=[
  {code:"business",title:"Деловое событие",short:"Деловые события",img:"business-tiles/biz-business.png",
   vendors:[["Техническое обеспечение","Звук, свет, экраны, конференц-техника"],["Кейтеринг","Кофе-брейк и фуршет"],["Ивент-агентства","Организация под ключ"],["Фото и видео","Съёмка и трансляция"],["Прочие специалисты","Модераторы, переводчики, регистрация"],["Обслуживание/прокат","Мебель, застройка, навигация"]],
   prices:[["Звук, свет, экраны","tech"],["Кейтеринг и кофе-брейк","catering"],["Модератор или ведущий","host"],["Фото","photo"],["Видео","video"],["Полиграфия и брендинг","print"]],
   plan:[["За 2–3 месяца","Дата, бюджет, площадка, спикеры"],["За 1 месяц","Техника, кейтеринг, модератор, приглашения"],["За 2 недели","Регистрация участников, брендинг, полиграфия"],["За 1–2 дня","Монтаж и технический прогон"]],
-  tips:["Как посчитать бюджет конференции","5 ошибок в техническом райдере","Гибридный формат: когда он действительно нужен","Тренды деловых событий 2026"]},
+  tips:["Как посчитать бюджет конференции","5 ошибок в техническом райдере","Гибридный формат: когда он действительно нужен","Тренды деловых событий 2026"],shelves:businessShelves},
  {code:"culture",title:"Концерт и культурное событие",short:"Концерты и культура",img:"business-tiles/biz-concert.png",
   vendors:[["Техническое обеспечение","Сцена, звук, свет"],["Ивент-агентства","Продюсирование и организация"],["Фото и видео","Съёмка и трансляция"],["Прочие специалисты","Ведущие, режиссёры, охрана"],["Обслуживание/прокат","Сцена, мебель, навигация"]],
   prices:[["Сцена, звук, свет","tech"],["Артисты и шоу","show"],["Ведущий","host"],["Фото","photo"],["Видео","video"],["Афиши и полиграфия","print"]],
@@ -100,6 +114,8 @@ function TerritoryScreen({t,go}:{t:Territory;go:(h:string)=>void}){
  const priced=t.prices.filter(([,c])=>prices?.[c]?.length);
  return <section className="ch-block ch-dir"><span className="ch-eyebrow">НАПРАВЛЕНИЕ · АЛМАТЫ</span><h1>{t.short}</h1>
   {err&&<p className="ch-note">Часть данных не загрузилась. Проверьте интернет и обновите страницу.</p>}
+  {t.shelves?<>{t.shelves.map(sh=><ShelfRow key={sh.title} sh={sh} type={t.code} prices={prices} go={go}/>)}
+   <p className="ch-note">Полки — по доле в бюджете деловых событий. Показываем только исполнителей с профилем «{t.short.toLowerCase()}»; цены — ориентир Eventer по Алматы, от эконом до премиум.</p></>:<>
   <div className="ch-sec"><h2>Площадки</h2>{sum&&<button onClick={()=>go(`venues=${t.code}`)}>Все {sum.venues} →</button>}</div>
   <div className="ch-shelf">{!venues&&!err&&<div className="ch-card ghost"/>}{venues?.map(v=><VenueCard key={v.id} v={v}/>)}</div>
   <h2>Подрядчики</h2>
@@ -111,6 +127,7 @@ function TerritoryScreen({t,go}:{t:Territory;go:(h:string)=>void}){
   {!prices&&!err&&<p className="ch-note">Загружаем цены рынка…</p>}
   {prices&&<div className="ch-list">{priced.map(([l,c])=>{const s=[...prices[c]].sort((a,b)=>a.tier-b.tier);return <div key={l}><span>{l}</span><b>{tg(s[0].min)} – {tg(s[s.length-1].max)} ₸<small>{unitLabel(s[0].unit)}</small></b></div>})}</div>}
   {prices&&<p className="ch-note">Ориентир Eventer по рынку Алматы, от эконом до премиум. Аренда площадок — по запросу, собираем реальные цены.</p>}
+  </>}
   <h2>С чего начать</h2>
   <div className="ch-plan">{t.plan.map(([w,s])=><div key={w}><b>{w}</b><span>{s}</span></div>)}</div>
   <h2>Советы и тренды</h2>
@@ -118,7 +135,21 @@ function TerritoryScreen({t,go}:{t:Territory;go:(h:string)=>void}){
   <button className="ch-prepare" onClick={()=>go(`new=${t.code}`)}><span className="ch-eyebrow">АССИСТЕНТ</span><b>Подготовить проект за 15 минут</b><small>{t.title}: бриф, смета, дорожная карта и идеи</small><i>→</i></button>
  </section>}
 
-function VenueCard({v}:{v:Item}){return <article className="ch-card"><span className="ch-card-sub">{v.subcategory??v.category}</span><b>{v.name}</b><small>{v.capacity?`до ${v.capacity} гостей`:"вместимость не указана"}</small>{v.address&&<small className="addr">{v.address.replace(/^Алматы,\s*/,"")}</small>}</article>}
+function ShelfRow({sh,type,prices,go}:{sh:Shelf;type:TypeCode;prices:Record<string,Tier[]>|null;go:(h:string)=>void}){
+ const [page,setPage]=useState<Page|null>(null),[err,setErr]=useState(false);
+ const has=sh.kind==="venue"||!!sh.cat;
+ useEffect(()=>{if(!has)return;rpc<Page>("pub_catalog",{p_type:type,p_kind:sh.kind,p_category:sh.cat??null,p_limit:8}).then(setPage).catch(()=>setErr(true))},[type,sh.title]);
+ const pt=sh.price&&prices?.[sh.price]?[...prices[sh.price]].sort((a,b)=>a.tier-b.tier):null;
+ const open=()=>go(sh.kind==="venue"?`venues=${type}`:`vendors=${sh.cat}|${type}`);
+ return <div className="ch-shelfrow">
+  <div className="ch-sec"><div><h2>{sh.title}</h2><small>{[sh.share,pt?`${tg(pt[0].min)} – ${tg(pt[pt.length-1].max)} ₸ ${unitLabel(pt[0].unit)}`:null].filter(Boolean).join(" · ")||sh.hint}</small></div>{page&&page.total>0&&<button onClick={open}>Все {page.total} →</button>}</div>
+  <div className="ch-shelf">
+   {has&&!page&&!err&&<div className="ch-card ghost"/>}
+   {page?.items.map(v=><VenueCard key={v.id} v={v}/>)}
+   {(!has||(page&&page.total===0)||err)&&<article className="ch-card ch-card-empty"><b>Собираем профильных исполнителей</b><small>{sh.hint}</small></article>}
+  </div></div>}
+
+function VenueCard({v}:{v:Item}){return <article className="ch-card"><span className="ch-card-sub">{v.subcategory??v.category}</span><b>{v.name}</b><small>{v.capacity?`до ${v.capacity} гостей`:v.category.includes("площадк")?"вместимость не указана":(v.description??"")}</small>{v.address&&<small className="addr">{v.address.replace(/^Алматы,\s*/,"")}</small>}</article>}
 
 function CatalogList({kind,type,category,query,go,title}:{kind:"venue"|"vendor"|"any";type:string;category?:string;query?:string;go:(h:string)=>void;title:string}){
  const [sub,setSub]=useState<string|null>(null),[guests,setGuests]=useState(0),[page,setPage]=useState<Page|null>(null),[more,setMore]=useState<Item[]>([]),[err,setErr]=useState(false),[loading,setLoading]=useState(false);
