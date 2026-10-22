@@ -6,6 +6,7 @@ import "./reel-clean.css";
 import "./light-unified.css";
 import type {ShowcaseEvent} from "../showcase-data";
 import {WeddingBottomNav} from "../WeddingBottomNav";
+import {CustomerHome} from "./CustomerHome";
 type Summary=Pick<ShowcaseEvent,"id"|"label"|"description"|"icon">;
 const BASE=import.meta.env.BASE_URL||"/";
 const publicUrl=(path:string)=>`${BASE}${path.replace(/^\//,"")}`;
@@ -17,6 +18,8 @@ function route(hash:string){history.pushState({},"",`${location.pathname}#${hash
 function back(fallback:string){if(history.length>1)history.back();else route(fallback)}
 async function choose(id:string,push=true){setLoading(true);setError(false);try{const r=await fetch(publicUrl(`api/showcase-${encodeURIComponent(id)}.json`));if(!r.ok)throw new Error();setSelected((await r.json()).event);setMode("private");if(push)history.pushState({},"",`${location.pathname}#event=${encodeURIComponent(id)}`);window.scrollTo({top:0,behavior:"smooth"})}catch{setError(true)}finally{setLoading(false)}}
 const nonStart=!!selected||mode!=="entry";
+// 22.10.2026: Eventer только для профессионалов — старт и «Для бизнеса» открывают рабочую Главную заказчика. Частный вход больше не показывается (частные заказчики идут через Афишу).
+if(!selected&&mode!=="private")return <CustomerHome/>;
 return <main className="showcase-app"><header className={`showcase-header${selected?.id==="wedding"?" wedding-header":""}${!selected?" entry-header":""}`}>{nonStart&&<button className="global-back" aria-label="Назад" onClick={()=>back("start")}>←</button>}<button className="showcase-logo" onClick={()=>route("start")}><img src={publicUrl("eventer-logo.svg")} alt="eventer"/></button><nav><button className="active" onClick={()=>route("start")}>Витрина</button><a href="#journal">Идеи</a><a href="#partners">Партнёры</a></nav><span className="wedding-city">Алматы⌄</span><a className="showcase-signin" aria-label="Личный кабинет" href={publicUrl(`vendor-mockup/?from=${selected?.id||mode}#profile`)}><LineIcon name="profile"/></a></header>
 {!selected&&mode==="entry"&&<section className="eventer-entry"><div className="eventer-entry-copy"><span>СОБЫТИЯ НАЧИНАЮТСЯ ЗДЕСЬ</span><h1>Создавайте события, которые запомнятся</h1><p>Идеи, профессионалы и готовые решения для частных и деловых событий.</p></div><div className="eventer-entry-actions"><button onClick={()=>route("private")}><b>Частное событие</b><span>Для себя и близких</span></button><button onClick={()=>route("business")}><b>Для бизнеса</b><span>Для команды и бренда</span></button></div></section>}
 {!selected&&mode==="private"&&<section className="event-select-screen"><button className="entry-back" onClick={()=>back("start")}>← Назад</button><div className="event-select-copy"><span>ЧАСТНОЕ СОБЫТИЕ</span><h1>Какой у вас повод?</h1><p>Выберите событие — EVENTER откроет тематическую витрину идей и предложений.</p></div>{loading&&<div className="showcase-state">Загружаем форматы…</div>}{error&&<div className="showcase-state error">Не удалось получить данные. Обновите страницу.</div>}{!loading&&!error&&<div className="event-type-grid private-four">{events.filter(e=>["wedding","kids","anniversary","party"].includes(e.id)).map(e=><button key={e.id} onClick={()=>choose(e.id)}><i>{e.icon}</i><b>{e.label}</b><small>{e.description}</small></button>)}</div>}</section>}
