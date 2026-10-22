@@ -60,3 +60,4 @@
 .ch-row{background:#fff;border-radius:16px;padding:13px 16px;display:flex;flex-direction:column;gap:3px}.ch-row b{font-size:15px}.ch-row small{font-size:13px;color:#5C5850}
 .ch-shelfrow .ch-sec{align-items:flex-end}.ch-shelfrow .ch-sec small{display:block;font-size:13px;color:#75716A;margin-top:3px}
 .ch-card-empty{background:#F0EEE9;box-shadow:none;justify-content:center}.ch-card-empty b{font-size:14px;color:#5C5850}
+.ch-types{margin:4px 0 6px}.ch-mini{padding:2px 0 10px}.ch-mini button{padding:7px 12px;font-size:13px}
