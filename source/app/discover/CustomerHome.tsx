@@ -70,7 +70,6 @@ const territories:Territory[]=[
 const orderShelves=(list:Shelf[])=>[...list.filter(x=>x.kind==="venue"),...list.filter(x=>x.kind!=="venue"&&x.chips),...list.filter(x=>x.kind!=="venue"&&!x.chips)];
 const chipArgs=(chips:VenueChip[])=>({p_category:chips.map(c=>c.cat).filter(Boolean).join("|")||null,p_sub:chips.map(c=>c.sub).filter(Boolean).join("|")||null});
 const byCode=(c:string)=>territories.find(t=>t.code===c);
-const tools=[["Бриф","Ассистент задаст 5–7 вопросов и соберёт бриф проекта"],["Смета","По реальным ценам рынка из базы Eventer"],["Дорожная карта","Что и к какому сроку сделать до события"],["Креатив","2–3 идеи концепции под цель и бюджет"]];
 const guestSteps=[0,50,100,200,500];
 
 type Item={id:string;name:string;category:string;subcategory?:string;capacity?:number;address?:string;description?:string;languages?:string[];event_types?:string[];experience_years?:number};
@@ -94,7 +93,7 @@ export function CustomerHome(){
   <button onClick={()=>chooseRole("customer")}><b>Я заказываю события</b><small>Маркетинг, HR, агентство, госзаказчик</small></button>
   <button onClick={()=>chooseRole("pro")}><b>Я исполнитель</b><small>Площадка, агентство, rental, артист, специалист</small></button></section></div>;
 
- const navActive=screen==="home"||screen==="dir"?"home":["venues","vendors","search","catalog"].includes(screen)?"catalog":screen==="new"?"assistant":screen;
+ const navActive=screen==="home"||screen==="dir"?"home":["venues","vendors","search","catalog"].includes(screen)?"catalog":screen==="new"?"assistant":screen==="project"?"projects":screen;
  return <div className="ch-app"><Header onLogo={()=>go("home")}/>
  {screen!=="home"&&<button className="ch-back" onClick={back}>← Назад</button>}
  {screen==="home"&&<>
@@ -108,9 +107,10 @@ export function CustomerHome(){
  {screen==="venues"&&<CatalogList key={hash} kind="venue" type={arg} chip={Number(extra??-1)} go={go} title={byCode(arg)?`Площадки · ${byCode(arg)!.title}`:"Все площадки"}/>}
  {screen==="vendors"&&byCode(arg)&&orderShelves(byCode(arg)!.shelves)[Number(extra)]&&<CatalogList key={hash} kind="vendor" type={arg} shelf={orderShelves(byCode(arg)!.shelves)[Number(extra)]} tagChip={Number(extra2??-1)} go={go} title={`${orderShelves(byCode(arg)!.shelves)[Number(extra)].title} · ${byCode(arg)!.title}`}/>}
  {screen==="search"&&<CatalogList key={hash} kind="any" type="" query={arg} go={go} title={`Поиск: «${arg}»`}/>}
- {screen==="new"&&<Prepare title={byCode(arg)?.title??""}/>}
- {screen==="assistant"&&<Prepare title=""/>}
- {screen==="projects"&&<Empty title="Проекты" text="Здесь появятся ваши проекты: заявки, ответы и смета по каждому событию." cta="Подготовить проект" onCta={()=>go("assistant")}/>}
+ {screen==="new"&&<ProjectBuilder key={hash} preset={byCode(arg)?.code} go={go}/>}
+ {screen==="assistant"&&<ProjectBuilder key={hash} go={go}/>}
+ {screen==="project"&&<ProjectView id={arg} go={go}/>}
+ {screen==="projects"&&<ProjectsList go={go}/>}
  {screen==="requests"&&<Empty title="Заявки" text="Здесь будут все отправленные заявки и ответы исполнителей. Напомним, если кто-то не ответил." cta="На главную" onCta={()=>go("home")}/>}
  {screen==="catalog"&&<CatalogHome go={go}/>}
  <nav className="ch-nav" aria-label="Меню заказчика">
@@ -132,9 +132,9 @@ function TerritoryScreen({t,go,swap}:{t:Territory;go:(h:string)=>void;swap:(h:st
   <button className="ch-prepare" onClick={()=>go(`new=${t.code}`)}><span className="ch-eyebrow">АССИСТЕНТ</span><b>Подготовить проект за 15 минут</b><small>{t.title}: бриф, смета, дорожная карта и идеи</small><i>→</i></button>
  </section>}
 
-function VenueShelf({t,s,go}:{t:Territory;s:Shelf;go:(h:string)=>void}){
+function VenueShelf({t,s,go,minGuests}:{t:Territory;s:Shelf;go:(h:string)=>void;minGuests?:number}){
  const [chip,setChip]=useState(-1),[page,setPage]=useState<Page|null>(null),[err,setErr]=useState(false);
- useEffect(()=>{setPage(null);setErr(false);rpc<Page>("pub_catalog_v2",{p_kind:"venue",...chipArgs(chip<0?t.venueChips:[t.venueChips[chip]]),p_limit:8}).then(setPage).catch(()=>setErr(true))},[t.code,chip]);
+ useEffect(()=>{setPage(null);setErr(false);rpc<Page>("pub_catalog_v2",{p_kind:"venue",...chipArgs(chip<0?t.venueChips:[t.venueChips[chip]]),p_min_guests:minGuests??null,p_limit:8}).then(setPage).catch(()=>setErr(true))},[t.code,chip]);
  return <div className="ch-shelfrow">
   <div className="ch-sec"><div><h2>{s.title}</h2>{s.share&&<small>{s.share}</small>}</div>{page&&page.total>0&&<button onClick={()=>go(`venues=${t.code}|${chip}`)}>Все {page.total} →</button>}</div>
   <div className="ch-chips ch-mini"><button className={chip<0?"on":""} onClick={()=>setChip(-1)}>Все</button>{t.venueChips.map((c,i)=><button key={c.label} className={chip===i?"on":""} onClick={()=>setChip(i)}>{c.label}</button>)}</div>
@@ -191,7 +191,82 @@ function CatalogHome({go}:{go:(h:string)=>void}){return <section className="ch-b
  <div className="ch-list">{territories.map(t=><button key={t.code} onClick={()=>go(`dir=${t.code}`)}><span><b>{t.title}</b></span><em>→</em></button>)}
  <button onClick={()=>go("venues=")}><span><b>Все площадки</b><small>Без привязки к типу события</small></span><em>→</em></button></div></section>}
 
-function Prepare({title}:{title:string}){return <section className="ch-block"><span className="ch-eyebrow">{title?"НОВЫЙ ПРОЕКТ":"АССИСТЕНТ"}</span><h1>{title||"Подготовить проект"}</h1><p>Ассистент соберёт всё, что нужно для согласования с руководителем.</p>
- <div className="ch-tools">{tools.map(([t,d])=><div key={t}><b>{t}</b><small>{d}</small><span>скоро</span></div>)}</div></section>}
-
 function Empty({title,text,cta,onCta}:{title:string;text:string;cta:string;onCta:()=>void}){return <section className="ch-block ch-empty"><h1>{title}</h1><p>{text}</p><button className="ch-cta" onClick={onCta}>{cta}</button></section>}
+
+// ───────── Сборка проекта (ассистент): тип → параметры → что нужно → смета, дорожная карта, исполнители ─────────
+type Tier={min:number;max:number;tier:number;unit:string};
+type Line={title:string;code:string|null;qty:number;unit:string;est:number|null;share:number};
+type Project={id:string;type:TypeCode;date:string;guests:number;budget:number|null;level:number;picked:string[];lines:Line[];created:string};
+const PKEY="eventer_projects";
+const loadProjects=():Project[]=>{try{return JSON.parse(localStorage.getItem(PKEY)||"[]")}catch{return []}};
+const saveProject=(p:Project)=>{try{localStorage.setItem(PKEY,JSON.stringify([p,...loadProjects().filter(x=>x.id!==p.id)].slice(0,30)))}catch{/* private mode */}};
+const LEVELS=["Эконом","Стандарт","Премиум"];
+const money=(n:number)=>n>=1e6?`${(n/1e6).toLocaleString("ru-RU",{maximumFractionDigits:1})} млн ₸`:`${Math.round(n/1000).toLocaleString("ru-RU")} тыс. ₸`;
+function priceCode(sh:Shelf,type:TypeCode):string|null{
+ if(sh.kind==="venue")return null;
+ if(sh.cat===TECH)return "tech";
+ if(sh.cat==="Кейтеринг")return "catering";
+ if(sh.cat===ARTISTS)return type==="business"?"host":"show";
+ if(sh.cat==="Ивент-агентства")return sh.title.startsWith("Booking")?"show":"organizer";
+ if(sh.cat==="Оформление/декор")return type==="business"?"print":"decor";
+ if(sh.cat==="Фото и видео")return "photo";
+ if(sh.sub==="Трансфер/прокат авто")return "transport";
+ return null;
+}
+const shareMid=(s?:string)=>{const m=s?.match(/(\d+)(?:–(\d+))?%/);return m?(Number(m[1])+Number(m[2]??m[1]))/2:3};
+function planDate(label:string,date:string){const m=label.match(/(\d+)(?:[–,](\d+))?\s*(месяц|недел|дн|день)/);if(!m||!date)return "";const n=Number(m[2]??m[1]);const days=m[3].startsWith("месяц")?n*30:m[3].startsWith("недел")?n*7:n;const d=new Date(date);d.setDate(d.getDate()-days);return d<new Date()?"срок прошёл — сделать сейчас":"до "+d.toLocaleDateString("ru-RU",{day:"numeric",month:"long"})}
+
+function ProjectBuilder({preset,go}:{preset?:TypeCode;go:(h:string)=>void}){
+ const [type,setType]=useState<TypeCode|undefined>(preset),[date,setDate]=useState(""),[guests,setGuests]=useState(100),[budget,setBudget]=useState(""),[level,setLevel]=useState(1),[picked,setPicked]=useState<string[]|null>(null),[busy,setBusy]=useState(false),[err,setErr]=useState(false);
+ const t=type?byCode(type)!:null;
+ useEffect(()=>{if(t)setPicked(t.shelves.filter(x=>x.share||x.kind==="venue").map(x=>x.title))},[type]);
+ const build=async()=>{if(!t||!picked)return;setBusy(true);setErr(false);
+  let tiers:Record<string,Tier[]>={};try{tiers=await rpc("pub_price_tiers",{p_city:"Алматы"})}catch{setErr(true)}
+  const lines:Line[]=t.shelves.filter(x=>picked.includes(x.title)).map(x=>{const code=priceCode(x,t.code);const tr=code?tiers[code]?.find(q=>q.tier===level):undefined;const qty=tr?.unit==="per_guest"?guests:1;return {title:x.title,code,qty,unit:tr?.unit??"",est:tr?Math.round((tr.min+tr.max)/2*qty):null,share:shareMid(x.share)}});
+  const p:Project={id:String(Date.now()),type:t.code,date,guests,budget:budget?Number(budget.replace(/\D/g,""))||null:null,level,picked,lines,created:new Date().toISOString()};
+  saveProject(p);setBusy(false);go(`project=${p.id}`)};
+ return <section className="ch-block"><span className="ch-eyebrow">АССИСТЕНТ</span><h1>Собрать проект</h1><p>Три шага — и у вас смета, дорожная карта и подбор исполнителей.</p>
+  <h2>1. Какое событие?</h2>
+  <div className="ch-chips ch-wrap">{territories.map(x=><button key={x.code} className={type===x.code?"on":""} onClick={()=>setType(x.code)}>{x.title}</button>)}</div>
+  {t&&<>
+   <h2>2. Параметры</h2>
+   <div className="ch-form">
+    <label>Дата события<input type="date" value={date} onChange={e=>setDate(e.target.value)}/></label>
+    <label>Гостей<input inputMode="numeric" value={guests} onChange={e=>setGuests(Number(e.target.value.replace(/\D/g,""))||0)}/></label>
+    <label>Бюджет, ₸ (если известен)<input inputMode="numeric" placeholder="например, 15 000 000" value={budget} onChange={e=>setBudget(e.target.value.replace(/[^\d ]/g,""))}/></label>
+   </div>
+   <div className="ch-chips">{LEVELS.map((l,i)=><button key={l} className={level===i?"on":""} onClick={()=>setLevel(i)}>{l}</button>)}</div>
+   <h2>3. Что нужно</h2>
+   <div className="ch-checks">{t.shelves.map(x=>{const on=!!picked?.includes(x.title);return <button key={x.title} className={on?"on":""} onClick={()=>setPicked(p=>on?(p??[]).filter(y=>y!==x.title):[...(p??[]),x.title])}><i>{on?"✓":""}</i><span>{x.title}</span></button>})}</div>
+   {err&&<p className="ch-note">Цены рынка не загрузились — смета будет без оценки.</p>}
+   <button className="ch-prepare ch-go" disabled={busy||!guests||!picked?.length} onClick={build}><b>{busy?"Собираем…":"Собрать проект"}</b><i>→</i></button>
+  </>}
+ </section>}
+
+function ProjectView({id,go}:{id:string;go:(h:string)=>void}){
+ const p=loadProjects().find(x=>x.id===id);
+ const [copied,setCopied]=useState(false);
+ if(!p)return <Empty title="Проект не найден" text="Возможно, он был создан на другом устройстве." cta="Собрать проект" onCta={()=>go("assistant")}/>;
+ const t=byCode(p.type)!;const total=p.lines.reduce((a,l)=>a+(l.est??0),0);const shareSum=p.lines.reduce((a,l)=>a+l.share,0)||1;const reserve=p.budget?Math.round(p.budget*0.1):Math.round(total*0.1);
+ const dateTxt=p.date?new Date(p.date).toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"}):"дата не указана";
+ const summary=[`${t.title} · ${dateTxt} · ${p.guests} гостей · ${LEVELS[p.level]}`,p.budget?`Бюджет: ${money(p.budget)}`:"",``,"Смета:",...p.lines.map(l=>`— ${l.title}: ${l.est?money(l.est):"по запросу"}${p.budget?` (по доле бюджета ${money(p.budget*0.9*l.share/shareSum)})`:""}`),`Итого по оценке рынка: ${money(total)} + резерв ${money(reserve)}`,``,"Дорожная карта:",...t.plan.map(([w,x])=>`— ${w}${p.date?` (${planDate(w,p.date)})`:""}: ${x}`)].filter(x=>x!==undefined).join("\n");
+ return <section className="ch-block"><span className="ch-eyebrow">ПРОЕКТ</span><h1 className="ch-h1s">{t.title}</h1><p className="ch-count">{dateTxt} · {p.guests} гостей · {LEVELS[p.level]}{p.budget?` · бюджет ${money(p.budget)}`:""}</p>
+  <h2>Смета</h2>
+  <div className="ch-list">{p.lines.map(l=><div key={l.title}><span><b>{l.title}</b>{p.budget&&<small>по доле бюджета ≈ {money(p.budget*0.9*l.share/shareSum)}</small>}</span><b>{l.est?money(l.est):<small>по запросу</small>}{l.unit==="per_guest"&&<small>{p.guests} гостей</small>}</b></div>)}
+   <div><span><b>Итого по рынку</b><small>резерв 10% — {money(reserve)}</small></span><b>{money(total)}</b></div></div>
+  {p.budget&&total>0&&<p className="ch-note">{total+reserve<=p.budget?`Укладываетесь в бюджет: остаётся ${money(p.budget-total-reserve)}.`:`Оценка рынка выше бюджета на ${money(total+reserve-p.budget)} — уберите позиции или выберите уровень ниже.`} Площадка и позиции «по запросу» не входят в итог.</p>}
+  <p className="ch-note">Оценка — ориентир Eventer по рынку Алматы, уровень «{LEVELS[p.level]}». Точные цены — в ответах исполнителей.</p>
+  <h2>Дорожная карта</h2>
+  <div className="ch-plan">{t.plan.map(([w,x])=><div key={w}><b>{w}{p.date?` · ${planDate(w,p.date)}`:""}</b><span>{x}</span></div>)}</div>
+  <h2>Исполнители</h2>
+  {orderShelves(t.shelves).filter(x=>p.picked.includes(x.title)).map((x,i)=>x.kind==="venue"?<VenueShelf key={x.title} t={t} s={x} go={go} minGuests={p.guests}/>:<ShelfRow key={x.title} sh={x} type={t.code} go={go} idx={orderShelves(t.shelves).indexOf(x)}/>)}
+  <h2>Креатив</h2>
+  <div className="ch-list"><div className="muted"><span>2–3 идеи концепции под цель и бюджет</span><small>скоро</small></div></div>
+  <div className="ch-actions"><button className="ch-cta" onClick={()=>{navigator.clipboard?.writeText(summary).then(()=>setCopied(true)).catch(()=>setCopied(false))}}>{copied?"Скопировано":"Скопировать для руководителя"}</button><button className="ch-cta" onClick={()=>window.print()}>Сохранить в PDF</button></div>
+ </section>}
+
+function ProjectsList({go}:{go:(h:string)=>void}){
+ const [list,setList]=useState<Project[]>([]);useEffect(()=>setList(loadProjects()),[]);
+ if(!list.length)return <Empty title="Проекты" text="Здесь появятся ваши проекты: смета, дорожная карта и исполнители по каждому событию." cta="Собрать проект" onCta={()=>go("assistant")}/>;
+ return <section className="ch-block"><h1>Проекты</h1><div className="ch-rows">{list.map(p=><button key={p.id} className="ch-row ch-rowbtn" onClick={()=>go(`project=${p.id}`)}><span className="ch-card-sub">{byCode(p.type)?.title}</span><b>{p.date?new Date(p.date).toLocaleDateString("ru-RU",{day:"numeric",month:"long"}):"Без даты"} · {p.guests} гостей</b><small>{p.lines.length} позиций · {LEVELS[p.level]}{p.budget?` · ${money(p.budget)}`:""}</small></button>)}</div>
+ <button className="ch-cta" onClick={()=>go("assistant")}>Собрать новый проект</button></section>}

@@ -68,3 +68,15 @@
 .ch-card small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ch-card-role{color:#C2410C!important;font-weight:600}
 .ch-shelf{align-items:flex-start}.ch-card{justify-content:flex-start}.ch-card>*{flex:none}
+.ch-wrap{flex-wrap:wrap;overflow:visible}
+.ch-form{display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
+.ch-form label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:#5C5850}
+.ch-form input{height:48px;border-radius:14px;border:1px solid #E2DFD8;background:#fff;padding:0 14px;font:inherit;font-size:16px;color:#1D1D1B}
+.ch-checks{display:flex;flex-direction:column;gap:8px}
+.ch-checks button{display:flex;align-items:center;gap:12px;border:1px solid #E7E4DE;background:#fff;border-radius:14px;padding:12px 14px;font:inherit;font-size:15px;text-align:left;color:#1D1D1B}
+.ch-checks i{width:22px;height:22px;border-radius:7px;border:1.5px solid #C9C5BD;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:14px;color:#fff;flex:none}
+.ch-checks button.on i{background:#F0541E;border-color:#F0541E}
+.ch-go{margin-top:18px}.ch-go b{font-size:18px}.ch-go:disabled{opacity:.5}
+.ch-actions{display:flex;flex-direction:column;gap:0;margin-top:8px}
+.ch-rowbtn{border:0;text-align:left;font:inherit;width:100%}
+@media print{.ch-nav,.ch-header,.ch-back,.ch-actions,.ch-shelfrow{display:none!important}.ch-app{padding:0}}
