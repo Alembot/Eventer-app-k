@@ -118,7 +118,6 @@ function Header({onLogo}:{onLogo?:()=>void}){return <header className="ch-header
 
 function TerritoryScreen({t,go,swap}:{t:Territory;go:(h:string)=>void;swap:(h:string)=>void}){
  return <section className="ch-block ch-dir"><span className="ch-eyebrow">НАПРАВЛЕНИЕ · АЛМАТЫ</span><h1>{t.title}</h1>
-  <div className="ch-chips ch-types">{territories.map(x=><button key={x.code} className={x.code===t.code?"on":""} onClick={()=>swap(`dir=${x.code}`)}>{x.short}</button>)}</div>
   {t.shelves.map(s=>s.kind==="venue"?<VenueShelf key={t.code+s.title} t={t} s={s} go={go}/>:<ShelfRow key={t.code+s.title} sh={s} type={t.code} go={go}/>)}
   <p className="ch-note">Полки — по значимости статей бюджета, резерв 10–15% закладывайте всегда. Исполнители — только с основным профилем «{t.short.toLowerCase()}».</p>
   <h2>С чего начать</h2>
