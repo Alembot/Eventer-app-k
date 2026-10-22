@@ -195,13 +195,16 @@ function Empty({title,text,cta,onCta}:{title:string;text:string;cta:string;onCta
 
 // ───────── Сборка проекта (ассистент): тип → параметры → что нужно → смета, дорожная карта, исполнители ─────────
 type Tier={min:number;max:number;tier:number;unit:string};
-type Line={title:string;code:string|null;qty:number;unit:string;est:number|null;share:number};
-type Project={id:string;type:TypeCode;date:string;guests:number;budget:number|null;level:number;picked:string[];lines:Line[];created:string};
+type Range={min:number;max:number};
+// Позиция сметы: сумма редактируется вручную или кнопками уровня (эконом/стандарт/премиум по рынку).
+type Line={title:string;code:string|null;qty:number;unit:string;share:number;tiers:Range[]|null;amount:number;est?:number|null};
+type Project={id:string;type:TypeCode;date:string;guests:number;budget:number|null;level?:number;picked:string[];lines:Line[];created:string};
 const PKEY="eventer_projects";
-const loadProjects=():Project[]=>{try{return JSON.parse(localStorage.getItem(PKEY)||"[]")}catch{return []}};
+const loadProjects=():Project[]=>{try{return (JSON.parse(localStorage.getItem(PKEY)||"[]") as Project[]).map(p=>({...p,lines:p.lines.map(l=>({...l,tiers:l.tiers??null,amount:l.amount??l.est??0}))}))}catch{return []}};
 const saveProject=(p:Project)=>{try{localStorage.setItem(PKEY,JSON.stringify([p,...loadProjects().filter(x=>x.id!==p.id)].slice(0,30)))}catch{/* private mode */}};
 const LEVELS=["Эконом","Стандарт","Премиум"];
-const money=(n:number)=>n>=1e6?`${(n/1e6).toLocaleString("ru-RU",{maximumFractionDigits:1})} млн ₸`:`${Math.round(n/1000).toLocaleString("ru-RU")} тыс. ₸`;
+const money=(n:number)=>n===0?"0 ₸":Math.abs(n)>=1e6?`${(n/1e6).toLocaleString("ru-RU",{maximumFractionDigits:1})} млн ₸`:`${Math.round(n/1000).toLocaleString("ru-RU")} тыс. ₸`;
+const round10k=(n:number)=>Math.round(n/10000)*10000;
 function priceCode(sh:Shelf,type:TypeCode):string|null{
  if(sh.kind==="venue")return null;
  if(sh.cat===TECH)return "tech";
@@ -215,17 +218,25 @@ function priceCode(sh:Shelf,type:TypeCode):string|null{
 }
 const shareMid=(s?:string)=>{const m=s?.match(/(\d+)(?:–(\d+))?%/);return m?(Number(m[1])+Number(m[2]??m[1]))/2:3};
 function planDate(label:string,date:string){const m=label.match(/(\d+)(?:[–,](\d+))?\s*(месяц|недел|дн|день)/);if(!m||!date)return "";const n=Number(m[2]??m[1]);const days=m[3].startsWith("месяц")?n*30:m[3].startsWith("недел")?n*7:n;const d=new Date(date);d.setDate(d.getDate()-days);return d<new Date()?"срок прошёл — сделать сейчас":"до "+d.toLocaleDateString("ru-RU",{day:"numeric",month:"long"})}
+const tierMid=(l:Line,i:number)=>l.tiers?round10k((l.tiers[i].min+l.tiers[i].max)/2*l.qty):0;
+const tierOf=(l:Line)=>{if(!l.tiers||!l.amount)return -1;const v=l.amount/l.qty;return l.tiers.findIndex(t=>v>=t.min*0.85&&v<=t.max*1.15)};
 
 function ProjectBuilder({preset,go}:{preset?:TypeCode;go:(h:string)=>void}){
- const [type,setType]=useState<TypeCode|undefined>(preset),[date,setDate]=useState(""),[guests,setGuests]=useState(100),[budget,setBudget]=useState(""),[level,setLevel]=useState(1),[picked,setPicked]=useState<string[]|null>(null),[busy,setBusy]=useState(false),[err,setErr]=useState(false);
+ const [type,setType]=useState<TypeCode|undefined>(preset),[date,setDate]=useState(""),[guests,setGuests]=useState(100),[budget,setBudget]=useState(""),[picked,setPicked]=useState<string[]|null>(null),[busy,setBusy]=useState(false),[err,setErr]=useState(false);
  const t=type?byCode(type)!:null;
  useEffect(()=>{if(t)setPicked(t.shelves.filter(x=>x.share||x.kind==="venue").map(x=>x.title))},[type]);
  const build=async()=>{if(!t||!picked)return;setBusy(true);setErr(false);
   let tiers:Record<string,Tier[]>={};try{tiers=await rpc("pub_price_tiers",{p_city:"Алматы"})}catch{setErr(true)}
-  const lines:Line[]=t.shelves.filter(x=>picked.includes(x.title)).map(x=>{const code=priceCode(x,t.code);const tr=code?tiers[code]?.find(q=>q.tier===level):undefined;const qty=tr?.unit==="per_guest"?guests:1;return {title:x.title,code,qty,unit:tr?.unit??"",est:tr?Math.round((tr.min+tr.max)/2*qty):null,share:shareMid(x.share)}});
-  const p:Project={id:String(Date.now()),type:t.code,date,guests,budget:budget?Number(budget.replace(/\D/g,""))||null:null,level,picked,lines,created:new Date().toISOString()};
+  const b=budget?Number(budget.replace(/\D/g,""))||null:null;
+  const chosen=t.shelves.filter(x=>picked.includes(x.title));const shareSum=chosen.reduce((a,x)=>a+shareMid(x.share),0)||1;
+  const lines:Line[]=chosen.map(x=>{const code=priceCode(x,t.code);const tr=code?[...(tiers[code]??[])].sort((q,w)=>q.tier-w.tier):[];const unit=tr[0]?.unit??"";const qty=unit==="per_guest"?guests:1;const share=shareMid(x.share);
+   const line:Line={title:x.title,code,qty,unit,share,tiers:tr.length===3?tr.map(q=>({min:q.min,max:q.max})):null,amount:0};
+   // С бюджетом — делим его по долям статей (90%, 10% резерв); без бюджета — середина рынка «стандарт».
+   line.amount=b?round10k(Math.min(b*0.9*share/shareSum,line.tiers?line.tiers[2].max*qty:Infinity)):tierMid(line,1);return line});
+  // Доля бюджета не превышает потолок рынка (премиум) — излишек остаётся в «Остатке».
+  const p:Project={id:String(Date.now()),type:t.code,date,guests,budget:b,picked,lines,created:new Date().toISOString()};
   saveProject(p);setBusy(false);go(`project=${p.id}`)};
- return <section className="ch-block"><span className="ch-eyebrow">АССИСТЕНТ</span><h1>Собрать проект</h1><p>Три шага — и у вас смета, дорожная карта и подбор исполнителей.</p>
+ return <section className="ch-block"><span className="ch-eyebrow">АССИСТЕНТ</span><h1>Собрать проект</h1><p>Три шага — и у вас смета-конструктор, дорожная карта и подбор исполнителей.</p>
   <h2>1. Какое событие?</h2>
   <div className="ch-chips ch-wrap">{territories.map(x=><button key={x.code} className={type===x.code?"on":""} onClick={()=>setType(x.code)}>{x.title}</button>)}</div>
   {t&&<>
@@ -233,40 +244,58 @@ function ProjectBuilder({preset,go}:{preset?:TypeCode;go:(h:string)=>void}){
    <div className="ch-form">
     <label>Дата события<input type="date" value={date} onChange={e=>setDate(e.target.value)}/></label>
     <label>Гостей<input inputMode="numeric" value={guests} onChange={e=>setGuests(Number(e.target.value.replace(/\D/g,""))||0)}/></label>
-    <label>Бюджет, ₸ (если известен)<input inputMode="numeric" placeholder="например, 15 000 000" value={budget} onChange={e=>setBudget(e.target.value.replace(/[^\d ]/g,""))}/></label>
+    <label>Бюджет, ₸ (если известен)<input inputMode="numeric" placeholder="например, 20 000 000" value={budget} onChange={e=>setBudget(e.target.value.replace(/[^\d ]/g,""))}/></label>
    </div>
-   <div className="ch-chips">{LEVELS.map((l,i)=><button key={l} className={level===i?"on":""} onClick={()=>setLevel(i)}>{l}</button>)}</div>
    <h2>3. Что нужно</h2>
    <div className="ch-checks">{t.shelves.map(x=>{const on=!!picked?.includes(x.title);return <button key={x.title} className={on?"on":""} onClick={()=>setPicked(p=>on?(p??[]).filter(y=>y!==x.title):[...(p??[]),x.title])}><i>{on?"✓":""}</i><span>{x.title}</span></button>})}</div>
-   {err&&<p className="ch-note">Цены рынка не загрузились — смета будет без оценки.</p>}
+   {err&&<p className="ch-note">Цены рынка не загрузились — смета будет без подсказок по рынку.</p>}
    <button className="ch-prepare ch-go" disabled={busy||!guests||!picked?.length} onClick={build}><b>{busy?"Собираем…":"Собрать проект"}</b><i>→</i></button>
   </>}
  </section>}
 
 function ProjectView({id,go}:{id:string;go:(h:string)=>void}){
- const p=loadProjects().find(x=>x.id===id);
- const [copied,setCopied]=useState(false);
+ const [p,setP]=useState<Project|null|undefined>(undefined),[copied,setCopied]=useState(false),[budgetEdit,setBudgetEdit]=useState("");
+ useEffect(()=>{const x=loadProjects().find(q=>q.id===id)??null;setP(x);setBudgetEdit(x?.budget?String(x.budget):"")},[id]);
+ if(p===undefined)return <section className="ch-block"><p className="ch-note">Загружаем…</p></section>;
  if(!p)return <Empty title="Проект не найден" text="Возможно, он был создан на другом устройстве." cta="Собрать проект" onCta={()=>go("assistant")}/>;
- const t=byCode(p.type)!;const total=p.lines.reduce((a,l)=>a+(l.est??0),0);const shareSum=p.lines.reduce((a,l)=>a+l.share,0)||1;const reserve=p.budget?Math.round(p.budget*0.1):Math.round(total*0.1);
+ const upd=(q:Project)=>{setP(q);saveProject(q)};
+ const setAmount=(i:number,v:number)=>upd({...p,lines:p.lines.map((l,j)=>j===i?{...l,amount:Math.max(0,v)}:l)});
+ const t=byCode(p.type)!;
+ const planned=p.lines.reduce((a,l)=>a+(l.amount||0),0);
+ const reserve=round10k((p.budget??planned)*0.1);
+ const left=p.budget!=null?p.budget-planned-reserve:null;
  const dateTxt=p.date?new Date(p.date).toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"}):"дата не указана";
- const summary=[`${t.title} · ${dateTxt} · ${p.guests} гостей · ${LEVELS[p.level]}`,p.budget?`Бюджет: ${money(p.budget)}`:"",``,"Смета:",...p.lines.map(l=>`— ${l.title}: ${l.est?money(l.est):"по запросу"}${p.budget?` (по доле бюджета ${money(p.budget*0.9*l.share/shareSum)})`:""}`),`Итого по оценке рынка: ${money(total)} + резерв ${money(reserve)}`,``,"Дорожная карта:",...t.plan.map(([w,x])=>`— ${w}${p.date?` (${planDate(w,p.date)})`:""}: ${x}`)].filter(x=>x!==undefined).join("\n");
- return <section className="ch-block"><span className="ch-eyebrow">ПРОЕКТ</span><h1 className="ch-h1s">{t.title}</h1><p className="ch-count">{dateTxt} · {p.guests} гостей · {LEVELS[p.level]}{p.budget?` · бюджет ${money(p.budget)}`:""}</p>
+ const summary=[`${t.title} · ${dateTxt} · ${p.guests} гостей`,p.budget?`Бюджет: ${money(p.budget)}`:"","","Смета:",...p.lines.map(l=>`— ${l.title}: ${l.amount?money(l.amount):"не указано"}`),`Запланировано: ${money(planned)} · резерв 10%: ${money(reserve)}${left!=null?` · ${left>=0?"остаток":"перерасход"}: ${money(Math.abs(left))}`:""}`,"","Дорожная карта:",...t.plan.map(([w,x])=>`— ${w}${p.date?` (${planDate(w,p.date)})`:""}: ${x}`)].join("\n");
+ return <section className="ch-block"><span className="ch-eyebrow">ПРОЕКТ</span><h1 className="ch-h1s">{t.title}</h1><p className="ch-count">{dateTxt} · {p.guests} гостей</p>
+  <div className="ch-total">
+   <label><span>Бюджет</span><input inputMode="numeric" placeholder="не указан" value={budgetEdit?Number(budgetEdit).toLocaleString("ru-RU"):""} onChange={e=>setBudgetEdit(e.target.value.replace(/\D/g,""))} onBlur={()=>upd({...p,budget:budgetEdit?Number(budgetEdit):null})}/></label>
+   <div><span>Запланировано</span><b>{money(planned)}</b></div>
+   <div><span>Резерв 10%</span><b>{money(reserve)}</b></div>
+   {left!=null&&<div className={left>=0?"ok":"bad"}><span>{left>=0?"Остаток":"Перерасход"}</span><b>{money(Math.abs(left))}</b></div>}
+  </div>
   <h2>Смета</h2>
-  <div className="ch-list">{p.lines.map(l=><div key={l.title}><span><b>{l.title}</b>{p.budget&&<small>по доле бюджета ≈ {money(p.budget*0.9*l.share/shareSum)}</small>}</span><b>{l.est?money(l.est):<small>по запросу</small>}{l.unit==="per_guest"&&<small>{p.guests} гостей</small>}</b></div>)}
-   <div><span><b>Итого по рынку</b><small>резерв 10% — {money(reserve)}</small></span><b>{money(total)}</b></div></div>
-  {p.budget&&total>0&&<p className="ch-note">{total+reserve<=p.budget?`Укладываетесь в бюджет: остаётся ${money(p.budget-total-reserve)}.`:`Оценка рынка выше бюджета на ${money(total+reserve-p.budget)} — уберите позиции или выберите уровень ниже.`} Площадка и позиции «по запросу» не входят в итог.</p>}
-  <p className="ch-note">Оценка — ориентир Eventer по рынку Алматы, уровень «{LEVELS[p.level]}». Точные цены — в ответах исполнителей.</p>
+  <p className="ch-note ch-note-top">Меняйте сумму по каждой статье или выбирайте уровень — итог наверху пересчитается сразу.</p>
+  <div className="ch-lines">{p.lines.map((l,i)=>{const lv=tierOf(l);return <div key={l.title} className="ch-line">
+   <div className="ch-line-head"><b>{l.title}</b><MoneyInput value={l.amount} onChange={v=>setAmount(i,v)}/></div>
+   {l.tiers?<><div className="ch-levels">{LEVELS.map((n,k)=><button key={n} className={lv===k?"on":""} onClick={()=>setAmount(i,tierMid(l,k))}>{n}</button>)}</div>
+    <small>Рынок: {money(l.tiers[0].min*l.qty)} – {money(l.tiers[2].max*l.qty)}{l.unit==="per_guest"?` на ${l.qty} гостей`:""}</small></>
+   :<small>Цены рынка собираем — укажите сумму сами или по ответам исполнителей</small>}
+  </div>})}</div>
   <h2>Дорожная карта</h2>
   <div className="ch-plan">{t.plan.map(([w,x])=><div key={w}><b>{w}{p.date?` · ${planDate(w,p.date)}`:""}</b><span>{x}</span></div>)}</div>
   <h2>Исполнители</h2>
-  {orderShelves(t.shelves).filter(x=>p.picked.includes(x.title)).map((x,i)=>x.kind==="venue"?<VenueShelf key={x.title} t={t} s={x} go={go} minGuests={p.guests}/>:<ShelfRow key={x.title} sh={x} type={t.code} go={go} idx={orderShelves(t.shelves).indexOf(x)}/>)}
+  {orderShelves(t.shelves).filter(x=>p.picked.includes(x.title)).map(x=>x.kind==="venue"?<VenueShelf key={x.title} t={t} s={x} go={go} minGuests={p.guests}/>:<ShelfRow key={x.title} sh={x} type={t.code} go={go} idx={orderShelves(t.shelves).indexOf(x)}/>)}
   <h2>Креатив</h2>
   <div className="ch-list"><div className="muted"><span>2–3 идеи концепции под цель и бюджет</span><small>скоро</small></div></div>
   <div className="ch-actions"><button className="ch-cta" onClick={()=>{navigator.clipboard?.writeText(summary).then(()=>setCopied(true)).catch(()=>setCopied(false))}}>{copied?"Скопировано":"Скопировать для руководителя"}</button><button className="ch-cta" onClick={()=>window.print()}>Сохранить в PDF</button></div>
  </section>}
 
+function MoneyInput({value,onChange}:{value:number;onChange:(v:number)=>void}){
+ const [v,setV]=useState(String(value||""));useEffect(()=>setV(String(value||"")),[value]);
+ return <span className="ch-money"><input inputMode="numeric" value={v?Number(v).toLocaleString("ru-RU"):""} placeholder="0" onChange={e=>setV(e.target.value.replace(/\D/g,""))} onBlur={()=>onChange(Number(v)||0)} onKeyDown={e=>{if(e.key==="Enter")(e.target as HTMLInputElement).blur()}}/>₸</span>}
+
 function ProjectsList({go}:{go:(h:string)=>void}){
  const [list,setList]=useState<Project[]>([]);useEffect(()=>setList(loadProjects()),[]);
  if(!list.length)return <Empty title="Проекты" text="Здесь появятся ваши проекты: смета, дорожная карта и исполнители по каждому событию." cta="Собрать проект" onCta={()=>go("assistant")}/>;
- return <section className="ch-block"><h1>Проекты</h1><div className="ch-rows">{list.map(p=><button key={p.id} className="ch-row ch-rowbtn" onClick={()=>go(`project=${p.id}`)}><span className="ch-card-sub">{byCode(p.type)?.title}</span><b>{p.date?new Date(p.date).toLocaleDateString("ru-RU",{day:"numeric",month:"long"}):"Без даты"} · {p.guests} гостей</b><small>{p.lines.length} позиций · {LEVELS[p.level]}{p.budget?` · ${money(p.budget)}`:""}</small></button>)}</div>
+ return <section className="ch-block"><h1>Проекты</h1><div className="ch-rows">{list.map(p=>{const planned=p.lines.reduce((a,l)=>a+(l.amount||0),0);return <button key={p.id} className="ch-row ch-rowbtn" onClick={()=>go(`project=${p.id}`)}><span className="ch-card-sub">{byCode(p.type)?.title}</span><b>{p.date?new Date(p.date).toLocaleDateString("ru-RU",{day:"numeric",month:"long"}):"Без даты"} · {p.guests} гостей</b><small>{p.lines.length} позиций · запланировано {money(planned)}{p.budget?` из ${money(p.budget)}`:""}</small></button>})}</div>
  <button className="ch-cta" onClick={()=>go("assistant")}>Собрать новый проект</button></section>}

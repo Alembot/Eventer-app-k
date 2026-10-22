@@ -80,3 +80,18 @@
 .ch-actions{display:flex;flex-direction:column;gap:0;margin-top:8px}
 .ch-rowbtn{border:0;text-align:left;font:inherit;width:100%}
 @media print{.ch-nav,.ch-header,.ch-back,.ch-actions,.ch-shelfrow{display:none!important}.ch-app{padding:0}}
+.ch-total{position:sticky;top:8px;z-index:20;margin-top:12px;background:#1D1D1B;color:#fff;border-radius:20px;padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;box-shadow:0 10px 24px rgba(29,29,27,.18)}
+.ch-total span{display:block;font-size:12px;color:#BDB8AE}.ch-total b{font-size:17px}
+.ch-total label{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #3A3833;padding-bottom:10px}
+.ch-total label input{width:60%;text-align:right;background:transparent;border:0;border-bottom:1px dashed #6E6A63;color:#fff;font:inherit;font-size:18px;font-weight:700;padding:4px 0;outline:0}
+.ch-total .ok b{color:#7EE2A1}.ch-total .bad b{color:#FF9A7A}
+.ch-note-top{margin:-4px 2px 10px}
+.ch-lines{display:flex;flex-direction:column;gap:10px}
+.ch-line{background:#fff;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.ch-line-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.ch-line-head b{font-size:15px}
+.ch-money{display:flex;align-items:center;gap:4px;font-weight:700;font-size:16px}
+.ch-money input{width:120px;text-align:right;border:0;border-bottom:1.5px dashed #C9C5BD;background:transparent;font:inherit;font-weight:700;font-size:16px;color:#1D1D1B;padding:2px 0;outline:0}
+.ch-levels{display:flex;gap:6px}.ch-levels button{flex:1;border:1px solid #E7E4DE;background:#fff;border-radius:12px;padding:7px 0;font:inherit;font-size:13px;color:#3A3833}
+.ch-levels button.on{background:#F0541E;border-color:#F0541E;color:#fff}
+.ch-line small{font-size:12px;color:#75716A}
+@media print{.ch-total{position:static}}
