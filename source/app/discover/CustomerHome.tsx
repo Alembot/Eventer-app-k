@@ -109,7 +109,7 @@ export function CustomerHome(){
  {screen==="search"&&<CatalogList key={hash} kind="any" type="" query={arg} go={go} title={`Поиск: «${arg}»`}/>}
  {screen==="new"&&<ProjectBuilder key={hash} preset={byCode(arg)?.code} go={go}/>}
  {screen==="assistant"&&<ProjectBuilder key={hash} go={go}/>}
- {screen==="project"&&<ProjectView id={arg} go={go}/>}
+ {screen==="project"&&<ProjectView key={arg} id={arg} line={extra!=null?Number(extra):null} go={go}/>}
  {screen==="projects"&&<ProjectsList go={go}/>}
  {screen==="requests"&&<Empty title="Заявки" text="Здесь будут все отправленные заявки и ответы исполнителей. Напомним, если кто-то не ответил." cta="На главную" onCta={()=>go("home")}/>}
  {screen==="catalog"&&<CatalogHome go={go}/>}
@@ -197,7 +197,24 @@ function Empty({title,text,cta,onCta}:{title:string;text:string;cta:string;onCta
 type Tier={min:number;max:number;tier:number;unit:string};
 type Range={min:number;max:number};
 // Позиция сметы: сумма редактируется вручную или кнопками уровня (эконом/стандарт/премиум по рынку).
-type Line={title:string;code:string|null;qty:number;unit:string;share:number;tiers:Range[]|null;amount:number;est?:number|null};
+type Row={label:string;qty:number;qtyLabel:string;price:number;priceLabel:string};
+type Line={title:string;code:string|null;qty:number;unit:string;share:number;tiers:Range[]|null;amount:number;est?:number|null;rows?:Row[]};
+// Шаблоны расчёта статьи: сумма = Σ количество × цена. Первая строка получает текущую сумму статьи.
+function rowsTemplate(l:Line,guests:number):Row[]{
+ const g=(label:string,price:number,priceLabel="средний чек на гостя, ₸"):Row=>({label,qty:guests,qtyLabel:"гостей",price,priceLabel});
+ const one=(label:string,price:number,qtyLabel="шт.",priceLabel="цена, ₸",qty=1):Row=>({label,qty,qtyLabel,price,priceLabel});
+ const a=l.amount||0,t=l.title;
+ if(/Кейтеринг/.test(t))return [g("Основное меню",Math.round(a/Math.max(guests,1))),{label:"Кофе-брейки",qty:0,qtyLabel:"кофе-брейков × гостей",price:0,priceLabel:"цена на гостя, ₸"},g("Напитки и бар",0),one("Обслуживание и аренда посуды",0,"раз","сумма, ₸")];
+ if(/Площадк/.test(t))return [one("Аренда зала",a,"дней","цена за день, ₸"),one("Монтаж и демонтаж",0,"дней","цена за день, ₸"),one("Сервисный сбор, депозит",0,"раз","сумма, ₸")];
+ if(/Техническое/.test(t))return [one("Звук",Math.round(a*0.3),"комплект","цена, ₸"),one("Свет",Math.round(a*0.25),"комплект","цена, ₸"),one("Видео и LED-экраны",Math.round(a*0.3),"м²","цена за м², ₸"),one("Сцена и конструкции",Math.round(a*0.15),"комплект","цена, ₸"),one("Риггинг",0),one("Спецэффекты",0),one("Технический персонал",0,"чел.","ставка за смену, ₸")];
+ if(/Booking|Артисты|ведущ/i.test(t))return [one(/спикер/i.test(t)?"Гонорар спикера":"Гонорар",a,"чел.","гонорар, ₸"),one("Райдер: перелёт и проживание",0,"чел.","сумма, ₸"),one("Трансфер",0,"поездок","цена, ₸")];
+ if(/Организатор|Промоутер/.test(t))return [one("Агентское вознаграждение",a,"раз","сумма, ₸"),one("Координаторы на площадке",0,"чел.","ставка, ₸")];
+ if(/Оформление|Навигация/.test(t))return [one("Пресс-волл, брендинг сцены",a,"шт.","цена, ₸"),one("Навигация и печать",0,"шт.","цена, ₸"),one("Декор и флористика",0,"комплект","цена, ₸")];
+ if(/Фото/.test(t))return [one("Фотограф",a,"часов","ставка в час, ₸"),one("Видеограф",0,"часов","ставка в час, ₸"),one("Монтаж ролика",0,"шт.","цена, ₸")];
+ if(/Логистик|Трансфер|Транспорт/.test(t))return [one("Автобусы, минивэны",a,"рейсов","цена рейса, ₸"),one("Встреча гостей в аэропорту",0,"машин","цена, ₸"),one("Проживание",0,"ночей × номеров","цена номера, ₸")];
+ return [one("Сумма",a,"раз","сумма, ₸")];
+}
+const rowsSum=(r:Row[])=>r.reduce((x,y)=>x+(y.qty||0)*(y.price||0),0);
 type Project={id:string;type:TypeCode;date:string;guests:number;budget:number|null;level?:number;picked:string[];lines:Line[];created:string};
 const PKEY="eventer_projects";
 const loadProjects=():Project[]=>{try{return (JSON.parse(localStorage.getItem(PKEY)||"[]") as Project[]).map(p=>({...p,lines:p.lines.map(l=>({...l,tiers:l.tiers??null,amount:l.amount??l.est??0}))}))}catch{return []}};
@@ -253,7 +270,7 @@ function ProjectBuilder({preset,go}:{preset?:TypeCode;go:(h:string)=>void}){
   </>}
  </section>}
 
-function ProjectView({id,go}:{id:string;go:(h:string)=>void}){
+function ProjectView({id,line,go}:{id:string;line:number|null;go:(h:string)=>void}){
  const [p,setP]=useState<Project|null|undefined>(undefined),[copied,setCopied]=useState(false),[budgetEdit,setBudgetEdit]=useState("");
  useEffect(()=>{const x=loadProjects().find(q=>q.id===id)??null;setP(x);setBudgetEdit(x?.budget?String(x.budget):"")},[id]);
  if(p===undefined)return <section className="ch-block"><p className="ch-note">Загружаем…</p></section>;
@@ -264,20 +281,34 @@ function ProjectView({id,go}:{id:string;go:(h:string)=>void}){
  const planned=p.lines.reduce((a,l)=>a+(l.amount||0),0);
  const reserve=round10k((p.budget??planned)*0.1);
  const left=p.budget!=null?p.budget-planned-reserve:null;
- const dateTxt=p.date?new Date(p.date).toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"}):"дата не указана";
- const summary=[`${t.title} · ${dateTxt} · ${p.guests} гостей`,p.budget?`Бюджет: ${money(p.budget)}`:"","","Смета:",...p.lines.map(l=>`— ${l.title}: ${l.amount?money(l.amount):"не указано"}`),`Запланировано: ${money(planned)} · резерв 10%: ${money(reserve)}${left!=null?` · ${left>=0?"остаток":"перерасход"}: ${money(Math.abs(left))}`:""}`,"","Дорожная карта:",...t.plan.map(([w,x])=>`— ${w}${p.date?` (${planDate(w,p.date)})`:""}: ${x}`)].join("\n");
- return <section className="ch-block"><span className="ch-eyebrow">ПРОЕКТ</span><h1 className="ch-h1s">{t.title}</h1><p className="ch-count">{dateTxt} · {p.guests} гостей</p>
-  <div className="ch-total">
+ const totalBar=<><div className="ch-total">
    <label><span>Бюджет</span><input inputMode="numeric" placeholder="не указан" value={budgetEdit?Number(budgetEdit).toLocaleString("ru-RU"):""} onChange={e=>setBudgetEdit(e.target.value.replace(/\D/g,""))} onBlur={()=>upd({...p,budget:budgetEdit?Number(budgetEdit):null})}/></label>
    <div><span>Запланировано</span><b>{money(planned)}</b></div>
    <div><span>Резерв 10%</span><b>{money(reserve)}</b></div>
    {left!=null&&<div className={left>=0?"ok":"bad"}><span>{left>=0?"Остаток":"Перерасход"}</span><b>{money(Math.abs(left))}</b></div>}
-  </div>
+  </div></>;
+ const dateTxt=p.date?new Date(p.date).toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"}):"дата не указана";
+ const summary=[`${t.title} · ${dateTxt} · ${p.guests} гостей`,p.budget?`Бюджет: ${money(p.budget)}`:"","","Смета:",...p.lines.map(l=>`— ${l.title}: ${l.amount?money(l.amount):"не указано"}`),`Запланировано: ${money(planned)} · резерв 10%: ${money(reserve)}${left!=null?` · ${left>=0?"остаток":"перерасход"}: ${money(Math.abs(left))}`:""}`,"","Дорожная карта:",...t.plan.map(([w,x])=>`— ${w}${p.date?` (${planDate(w,p.date)})`:""}: ${x}`)].join("\n");
+ if(line!=null&&p.lines[line]){const l=p.lines[line];const rows=l.rows??rowsTemplate(l,p.guests);
+  const setRows=(r:Row[])=>upd({...p,lines:p.lines.map((x,j)=>j===line?{...x,rows:r,amount:rowsSum(r)}:x)});
+  const setRow=(k:number,patch:Partial<Row>)=>setRows(rows.map((r,j)=>j===k?{...r,...patch}:r));
+  return <section className="ch-block"><span className="ch-eyebrow">СТАТЬЯ СМЕТЫ</span><h1 className="ch-h1s">{l.title}</h1><p className="ch-count">{t.title} · {p.guests} гостей</p>
+   {totalBar}
+   <div className="ch-line ch-line-sum"><div className="ch-line-head"><b>Итого по статье</b><b>{money(rowsSum(rows))}</b></div>{l.tiers&&<small>Рынок: {money(l.tiers[0].min*l.qty)} – {money(l.tiers[2].max*l.qty)}{l.unit==="per_guest"?` на ${l.qty} гостей`:""}</small>}</div>
+   <div className="ch-lines">{rows.map((r,k)=><div key={k} className="ch-line">
+    <div className="ch-line-head"><input className="ch-rowlabel" value={r.label} onChange={e=>setRow(k,{label:e.target.value})}/><b>{money((r.qty||0)*(r.price||0))}</b></div>
+    <div className="ch-calc"><label><small>{r.qtyLabel}</small><NumInput value={r.qty} onChange={v=>setRow(k,{qty:v})}/></label><span>×</span><label><small>{r.priceLabel}</small><NumInput value={r.price} onChange={v=>setRow(k,{price:v})}/></label></div>
+   </div>)}</div>
+   <button className="ch-cta" onClick={()=>setRows([...rows,{label:"Новая позиция",qty:1,qtyLabel:"шт.",price:0,priceLabel:"цена, ₸"}])}>+ Добавить позицию</button>
+   <button className="ch-cta ch-cta-dark" onClick={()=>history.back()}>Готово</button>
+  </section>}
+ return <section className="ch-block"><span className="ch-eyebrow">ПРОЕКТ</span><h1 className="ch-h1s">{t.title}</h1><p className="ch-count">{dateTxt} · {p.guests} гостей</p>
+  {totalBar}
   <h2>Смета</h2>
   <p className="ch-note ch-note-top">Меняйте сумму по каждой статье или выбирайте уровень — итог наверху пересчитается сразу.</p>
   <div className="ch-lines">{p.lines.map((l,i)=>{const lv=tierOf(l);return <div key={l.title} className="ch-line">
-   <div className="ch-line-head"><b>{l.title}</b><MoneyInput value={l.amount} onChange={v=>setAmount(i,v)}/></div>
-   {l.tiers?<><div className="ch-levels">{LEVELS.map((n,k)=><button key={n} className={lv===k?"on":""} onClick={()=>setAmount(i,tierMid(l,k))}>{n}</button>)}</div>
+   <div className="ch-line-head"><button className="ch-linelink" onClick={()=>go(`project=${p.id}|${i}`)}>{l.title}<span>расчёт ›</span></button><MoneyInput value={l.amount} onChange={v=>upd({...p,lines:p.lines.map((x,j)=>j===i?{...x,amount:Math.max(0,v),rows:undefined}:x)})}/></div>
+   {l.tiers?<><div className="ch-levels">{LEVELS.map((n,k)=><button key={n} className={lv===k?"on":""} onClick={()=>upd({...p,lines:p.lines.map((x,j)=>j===i?{...x,amount:tierMid(l,k),rows:undefined}:x)})}>{n}</button>)}</div>
     <small>Рынок: {money(l.tiers[0].min*l.qty)} – {money(l.tiers[2].max*l.qty)}{l.unit==="per_guest"?` на ${l.qty} гостей`:""}</small></>
    :<small>Цены рынка собираем — укажите сумму сами или по ответам исполнителей</small>}
   </div>})}</div>
@@ -299,3 +330,7 @@ function ProjectsList({go}:{go:(h:string)=>void}){
  if(!list.length)return <Empty title="Проекты" text="Здесь появятся ваши проекты: смета, дорожная карта и исполнители по каждому событию." cta="Собрать проект" onCta={()=>go("assistant")}/>;
  return <section className="ch-block"><h1>Проекты</h1><div className="ch-rows">{list.map(p=>{const planned=p.lines.reduce((a,l)=>a+(l.amount||0),0);return <button key={p.id} className="ch-row ch-rowbtn" onClick={()=>go(`project=${p.id}`)}><span className="ch-card-sub">{byCode(p.type)?.title}</span><b>{p.date?new Date(p.date).toLocaleDateString("ru-RU",{day:"numeric",month:"long"}):"Без даты"} · {p.guests} гостей</b><small>{p.lines.length} позиций · запланировано {money(planned)}{p.budget?` из ${money(p.budget)}`:""}</small></button>})}</div>
  <button className="ch-cta" onClick={()=>go("assistant")}>Собрать новый проект</button></section>}
+
+function NumInput({value,onChange}:{value:number;onChange:(v:number)=>void}){
+ const [v,setV]=useState(String(value||""));useEffect(()=>setV(String(value||"")),[value]);
+ return <input className="ch-num" inputMode="numeric" value={v?Number(v).toLocaleString("ru-RU"):""} placeholder="0" onChange={e=>{const d=e.target.value.replace(/\D/g,"");setV(d);onChange(Number(d)||0)}}/>}
