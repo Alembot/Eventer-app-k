@@ -26,7 +26,7 @@ const ARTISTS="Музыкальная программа|DJ/диджеи|Про�
 const sh={
  venue:(share?:string):Shelf=>({title:"Площадки",hint:"Выберите тип площадки на полке",share,kind:"venue"}),
  catering:(title:string,share?:string):Shelf=>({title,hint:"Кейтеринг, бар, обслуживание",share,kind:"vendor",cat:"Кейтеринг",sub:"Кейтеринговые компании|Выездной кейтеринг|Событийный кейтеринг"}),
- tech:(share?:string):Shelf=>({title:"Техническое обеспечение",hint:"Свет, звук, видео и LED-экраны, сцена, риггинг, спецэффекты",share,kind:"vendor",cat:TECH,chips:TECH_CHIPS}),
+ tech:(share?:string,extra:TagChip[]=[]):Shelf=>({title:"Техническое обеспечение",hint:"Свет, звук, видео и LED-экраны, сцена, риггинг, спецэффекты",share,kind:"vendor",cat:TECH,chips:[...TECH_CHIPS,...extra]}),
  artists:(title:string,hint:string,share?:string):Shelf=>({title,hint,share,kind:"vendor",cat:ARTISTS}),
  organizers:(title:string,share?:string):Shelf=>({title,hint:"Организация под ключ",share,kind:"vendor",cat:"Ивент-агентства"}),
  decor:(title:string,share?:string):Shelf=>({title,hint:"Оформление, брендинг, фотозоны, навигация",share,kind:"vendor",cat:"Оформление/декор"}),
@@ -40,10 +40,9 @@ const sh={
 const territories:Territory[]=[
  {code:"business",title:"Деловые события",short:"Деловые",img:"business-tiles/biz-business.png",
   venueChips:[{label:"Конференц-залы и отели",cat:"Бизнес площадки"},{label:"Выставочные и креативные",cat:"Выставочные залы и галереи|Креативные площадки"}],
-  shelves:[sh.venue("15–30% бюджета"),sh.catering("Кейтеринг и кофе-брейки","20–40% бюджета"),sh.tech("10–25% бюджета"),
-   {...sh.artists("Спикеры, модераторы и ведущие","Модераторы, ведущие, приглашённые спикеры","5–20% бюджета"),tags:"модератор|делов|конференц|форум|бизнес|корпоратив"},sh.organizers("Организаторы деловых событий","10–15% бюджета"),
-   sh.other("Регистрация участников","Онлайн-регистрация, бейджи, стойки, сканеры"),sh.other("Синхронный перевод","Переводчики, кабины, приёмники"),
-   sh.decor("Оформление и брендинг","около 5% бюджета"),sh.specialists("Технические директора, стейдж-менеджеры, координаторы"),sh.photo(),sh.logistics("Трансфер и проживание","Трансфер спикеров и гостей, отели")],
+  shelves:[sh.venue("15–30% бюджета"),sh.catering("Кейтеринг и кофе-брейки","20–40% бюджета"),sh.tech("10–25% бюджета",[{label:"Конференц-системы и перевод",re:"конференц|синхрон|перевод"}]),
+   {...sh.artists("Booking спикеров","Спикеры, модераторы, деловые ведущие","5–20% бюджета"),tags:"модератор|делов|конференц|форум|бизнес|корпоратив|презентац|выставк"},sh.organizers("Организаторы деловых событий","10–15% бюджета"),
+      sh.decor("Оформление и брендинг","около 5% бюджета"),sh.specialists("Хостес, волонтёры, регистрация, переводчики, технические директора, стейдж-менеджеры"),sh.photo(),sh.logistics("Трансфер и проживание","Трансфер спикеров и гостей, отели")],
   plan:[["За 2–3 месяца","Дата, бюджет, площадка, спикеры"],["За 1 месяц","Техника, кейтеринг, модератор, приглашения"],["За 2 недели","Регистрация участников, брендинг"],["За 1–2 дня","Монтаж и технический прогон"]],
   tips:["Как посчитать бюджет конференции","5 ошибок в техническом райдере","Гибридный формат: когда он действительно нужен","Тренды деловых событий 2026"]},
  {code:"corporate",title:"Корпоративные события",short:"Корпоративные",img:"business-tiles/biz-corporate.png",
@@ -74,7 +73,8 @@ const byCode=(c:string)=>territories.find(t=>t.code===c);
 const tools=[["Бриф","Ассистент задаст 5–7 вопросов и соберёт бриф проекта"],["Смета","По реальным ценам рынка из базы Eventer"],["Дорожная карта","Что и к какому сроку сделать до события"],["Креатив","2–3 идеи концепции под цель и бюджет"]];
 const guestSteps=[0,50,100,200,500];
 
-type Item={id:string;name:string;category:string;subcategory?:string;capacity?:number;address?:string;description?:string};
+type Item={id:string;name:string;category:string;subcategory?:string;capacity?:number;address?:string;description?:string;languages?:string[];event_types?:string[];experience_years?:number};
+const LANG:Record<string,string>={"казахский":"каз","русский":"рус","английский":"англ","китайский":"кит","турецкий":"тур"};
 type Page={total:number;subcats:{name:string;n:number}[];items:Item[]};
 function readHash(){return decodeURIComponent(location.hash.slice(1))}
 function safeGet(k:string){try{return localStorage.getItem(k)}catch{return null}}
@@ -154,7 +154,15 @@ function ShelfRow({sh,type,go,idx}:{sh:Shelf;type:TypeCode;go:(h:string)=>void;i
    {(!has||(page&&page.total===0)||err)&&<article className="ch-card ch-card-empty"><b>{err?"Не удалось загрузить":"Пока нет в базе — добавляем"}</b><small>{sh.hint}</small></article>}
   </div></div>}
 
-function VenueCard({v}:{v:Item}){return <article className="ch-card"><b>{v.name}</b><small>{v.capacity?`до ${v.capacity} гостей`:v.category.includes("площадк")?"вместимость не указана":(v.description||v.subcategory||"")}</small>{v.address&&<small className="addr">{v.address.replace(/^Алматы,\s*/,"")}</small>}</article>}
+function VenueCard({v}:{v:Item}){
+ const isVenue=v.category.includes("площадк")||v.capacity!=null;
+ if(isVenue)return <article className="ch-card"><b className="ch-card-name">{v.name}</b><small>{v.capacity?`до ${v.capacity} гостей`:"вместимость не указана"}</small>{v.address&&<small className="addr">{v.address.replace(/^Алматы,\s*/,"")}</small>}</article>;
+ // Карточка исполнителя — коротко: кто он, опыт, языки, какие события ведёт (без описаний).
+ const langs=(v.languages??[]).filter(Boolean).map(l=>LANG[l.toLowerCase()]??l).join(" · ");
+ const types=(v.event_types??[]).slice(0,3).join(", ")+((v.event_types?.length??0)>3?" …":"");
+ return <article className="ch-card"><b className="ch-card-name">{v.name}</b><small className="ch-card-role">{v.subcategory??v.category}</small>
+  {(v.experience_years||langs)&&<small>{[v.experience_years?`опыт ${v.experience_years} лет`:null,langs||null].filter(Boolean).join(" · ")}</small>}
+  {types&&<small className="addr">{types}</small>}</article>}
 
 function CatalogList({kind,type,shelf,query,go,title,chip:chip0=-1,tagChip:tag0=-1}:{kind:"venue"|"vendor"|"any";type:string;shelf?:Shelf;query?:string;go:(h:string)=>void;title:string;chip?:number;tagChip?:number}){
  const category=shelf?.cat,tagChips=shelf?.chips??null,[tc,setTc]=useState(isNaN(tag0)?-1:tag0);

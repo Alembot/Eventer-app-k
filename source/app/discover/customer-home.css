@@ -64,3 +64,7 @@
 .ch-tiles2 button{aspect-ratio:auto;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:10px;padding:10px 10px 14px;background:#fff}
 .ch-tile-img{display:block;width:100%;aspect-ratio:1/1;border-radius:16px;background-size:cover;background-position:center}
 .ch-tiles2 b{color:#1D1D1B;max-width:none;font-size:15px;line-height:1.25;padding:0 4px;text-align:left}
+.ch-card{min-height:0}.ch-card-name{display:block;max-height:2.5em;line-height:1.25;overflow:hidden}
+.ch-card small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-card-role{color:#C2410C!important;font-weight:600}
+.ch-shelf{align-items:flex-start}.ch-card{justify-content:flex-start}.ch-card>*{flex:none}
