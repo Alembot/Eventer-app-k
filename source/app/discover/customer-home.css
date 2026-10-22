@@ -34,3 +34,12 @@
 .ch-nav button{border:0;background:none;font:inherit;display:flex;flex-direction:column;align-items:center;gap:3px;color:#5C5850;font-size:11px}
 .ch-nav img{width:40px;height:34px;object-fit:contain}
 .ch-nav button.active{color:#C2410C;font-weight:600}
+.ch-dir h2{font-size:18px;margin:22px 0 10px}
+.ch-list{background:#fff;border-radius:18px;overflow:hidden}
+.ch-list>a,.ch-list>div{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid #EFEDE8;color:#1D1D1B;text-decoration:none;font-size:15px}
+.ch-list>:last-child{border-bottom:0}.ch-list i{font-style:normal;color:#A9A49B;font-size:20px}
+.ch-list .muted span{color:#75716A}.ch-list small{font-size:12px;color:#75716A;font-weight:400}
+.ch-list b{text-align:right;font-size:15px;white-space:nowrap;display:flex;flex-direction:column;align-items:flex-end}
+.ch-note{font-size:13px;color:#75716A;line-height:1.4;margin:8px 2px 0}
+.ch-plan{display:flex;flex-direction:column;gap:8px}.ch-plan div{background:#fff;border-radius:16px;padding:12px 16px;display:flex;flex-direction:column;gap:2px}.ch-plan b{font-size:14px;color:#C2410C}.ch-plan span{font-size:15px}
+.ch-dir .ch-prepare{margin-top:22px}
