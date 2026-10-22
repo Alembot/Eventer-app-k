@@ -61,3 +61,6 @@
 .ch-shelfrow .ch-sec{align-items:flex-end}.ch-shelfrow .ch-sec small{display:block;font-size:13px;color:#75716A;margin-top:3px}
 .ch-card-empty{background:#F0EEE9;box-shadow:none;justify-content:center}.ch-card-empty b{font-size:14px;color:#5C5850}
 .ch-types{margin:4px 0 6px}.ch-mini{padding:2px 0 10px}.ch-mini button{padding:7px 12px;font-size:13px}
+.ch-tiles2 button{aspect-ratio:auto;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:10px;padding:10px 10px 14px;background:#fff}
+.ch-tile-img{display:block;width:100%;aspect-ratio:1/1;border-radius:16px;background-size:cover;background-position:center}
+.ch-tiles2 b{color:#1D1D1B;max-width:none;font-size:15px;line-height:1.25;padding:0 4px;text-align:left}

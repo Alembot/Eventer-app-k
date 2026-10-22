@@ -66,6 +66,8 @@ const territories:Territory[]=[
   plan:[["За 2–3 месяца","Площадка, бюджет, согласования с акиматом"],["За 1 месяц","Программа, техника, подрядчики"],["За 2 недели","Информирование, навигация"],["За 1–2 дня","Монтаж, безопасность, прогон"]],
   tips:["Какие согласования нужны для городского события","Безопасность массового мероприятия: чек-лист","Как работать с волонтёрами","Тренды городских событий 2026"]}
 ];
+// Полки с фильтрами (площадки, техническое обеспечение) всегда сверху — решение Кайрата 22.10.
+const orderShelves=(list:Shelf[])=>[...list.filter(x=>x.kind==="venue"),...list.filter(x=>x.kind!=="venue"&&x.chips),...list.filter(x=>x.kind!=="venue"&&!x.chips)];
 const chipArgs=(chips:VenueChip[])=>({p_category:chips.map(c=>c.cat).filter(Boolean).join("|")||null,p_sub:chips.map(c=>c.sub).filter(Boolean).join("|")||null});
 const byCode=(c:string)=>territories.find(t=>t.code===c);
 const tools=[["Бриф","Ассистент задаст 5–7 вопросов и соберёт бриф проекта"],["Смета","По реальным ценам рынка из базы Eventer"],["Дорожная карта","Что и к какому сроку сделать до события"],["Креатив","2–3 идеи концепции под цель и бюджет"]];
@@ -99,7 +101,7 @@ export function CustomerHome(){
    <form onSubmit={e=>{e.preventDefault();if(q.trim().length>=2)go(`search=${q.trim()}`)}}><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Название, зал, услуга" aria-label="Что нужно найти"/><button type="submit" aria-label="Найти">→</button></form></section>
   <button className="ch-prepare" onClick={()=>go("assistant")}><span className="ch-eyebrow">АССИСТЕНТ</span><b>Подготовить проект за 15 минут</b><small>Бриф, смета, дорожная карта и идеи — готово для руководителя</small><i>→</i></button>
   <section className="ch-block"><h2>Направления</h2>
-   <div className="ch-tiles">{territories.map(t=><button key={t.code} style={{backgroundImage:`url(${pub(t.img)})`}} onClick={()=>go(`dir=${t.code}`)}><b>{t.title}</b><i>→</i></button>)}</div></section>
+   <div className="ch-tiles ch-tiles2">{territories.map(t=><button key={t.code} onClick={()=>go(`dir=${t.code}`)}><span className="ch-tile-img" style={{backgroundImage:`url(${pub(t.img)})`}}/><b>{t.title}</b></button>)}</div></section>
  </>}
  {screen==="dir"&&byCode(arg)&&<TerritoryScreen t={byCode(arg)!} go={go} swap={swap}/>}
  {screen==="venues"&&<CatalogList key={hash} kind="venue" type={arg} chip={Number(extra??-1)} go={go} title={byCode(arg)?`Площадки · ${byCode(arg)!.title}`:"Все площадки"}/>}
@@ -120,7 +122,7 @@ function Header({onLogo}:{onLogo?:()=>void}){return <header className="ch-header
 
 function TerritoryScreen({t,go,swap}:{t:Territory;go:(h:string)=>void;swap:(h:string)=>void}){
  return <section className="ch-block ch-dir"><span className="ch-eyebrow">НАПРАВЛЕНИЕ · АЛМАТЫ</span><h1>{t.title}</h1>
-  {t.shelves.map(s=>s.kind==="venue"?<VenueShelf key={t.code+s.title} t={t} s={s} go={go}/>:<ShelfRow key={t.code+s.title} sh={s} type={t.code} go={go}/>)}
+  {orderShelves(t.shelves).map(s=>s.kind==="venue"?<VenueShelf key={t.code+s.title} t={t} s={s} go={go}/>:<ShelfRow key={t.code+s.title} sh={s} type={t.code} go={go}/>)}
   <p className="ch-note">Полки — по значимости статей бюджета, резерв 10–15% закладывайте всегда. Исполнители — только с основным профилем «{t.short.toLowerCase()}».</p>
   <h2>С чего начать</h2>
   <div className="ch-plan">{t.plan.map(([w,x])=><div key={w}><b>{w}</b><span>{x}</span></div>)}</div>
