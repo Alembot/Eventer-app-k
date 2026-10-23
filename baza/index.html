@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>База Eventer</title>
+<meta name="theme-color" content="#141417">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="База Eventer">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+/* «База Eventer» — мобильный пульт базы исполнителей Eventer (поручение Кайрата 23.10.2026).
+   Только просмотр: две функции базы eventer_dashboard_summary(pin) и eventer_dashboard_system(pin),
+   PIN проверяется на стороне базы, служебные таблицы наружу не открыты. PIN запоминается на телефоне. */
+:root{--bg:#141417;--card:#1D1D22;--line:#2A2A31;--muted:#B4AFA8;--dim:#86817A;--text:#F2EFEA;--acc:#F0541E;--accbg:#3A2216;--accfg:#FFB08F;--ok:#8FD3A8;--okbg:#16301F;--bad:#F2A093;--badbg:#3A1A15;--warn:#F0C27A;--warnbg:#33260F}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;-webkit-text-size-adjust:100%}
+button,input{font:inherit;color:inherit}
+.wrap{max-width:720px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 48px)}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-size:24px;margin:0;line-height:1.15}
+.sub{font-size:12px;color:var(--muted);margin-top:2px}
+.btns{display:flex;gap:8px;flex-shrink:0}
+.btn{border:0;border-radius:12px;background:#24242A;padding:10px 12px;font-size:14px;font-weight:600}
+.btn.acc{background:var(--accbg);color:var(--accfg)}
+.btn:disabled{opacity:.5}
+.note{margin-top:16px;border-radius:14px;padding:14px;font-size:14px;line-height:20px}
+.note.ok{background:var(--okbg);color:var(--ok)}.note.bad{background:var(--badbg);color:var(--bad)}.note.warn{background:var(--warnbg);color:var(--warn)}
+.note b{display:block;font-size:15px;margin-bottom:4px}
+section{margin-top:26px}
+h2{margin:0 0 10px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media(min-width:560px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.tile{background:var(--card);border-radius:16px;padding:14px}
+.tile .v{font-size:26px;font-weight:700;line-height:1}
+.tile .l{margin-top:8px;font-size:14px;font-weight:600}
+.tile .s{margin-top:2px;font-size:12px;color:var(--muted)}
+.tile.ok .v{color:var(--ok)}.tile.bad .v{color:var(--bad)}
+.list{background:var(--card);border-radius:16px;overflow:hidden}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-top:1px solid var(--line);font-size:14px}
+.row:first-child{border-top:0}
+.row .r{color:var(--muted);text-align:right;white-space:nowrap}
+.row .r b{color:var(--text)}
+.bar{height:6px;border-radius:3px;background:#2A2A31;margin-top:6px;overflow:hidden}.bar i{display:block;height:6px;background:var(--acc)}
+.rowcol{display:block}
+.small{font-size:12px;color:var(--muted);margin-top:2px}
+.tag{flex-shrink:0;border-radius:999px;padding:3px 9px;font-size:11px;font-weight:600}
+.tag.ok{background:var(--okbg);color:var(--ok)}.tag.cand{background:#24242A;color:var(--muted)}
+.hint{font-size:12px;color:var(--dim);margin:8px 2px 0}
+.pin{min-height:100dvh;display:flex;flex-direction:column;justify-content:center;max-width:360px;margin:0 auto;padding:0 24px}
+.pin input{margin-top:18px;border-radius:12px;border:1px solid #33333B;background:var(--card);padding:12px 16px;font-size:20px;letter-spacing:.3em;outline:0}
+.pin input:focus{border-color:var(--acc)}
+.pin .go{margin-top:14px;border:0;border-radius:12px;background:var(--acc);color:#fff;padding:13px;font-size:16px;font-weight:600}
+.logout{margin-top:36px;border:0;background:none;color:var(--dim);font-size:13px;text-decoration:underline}
+.sysbtn{display:block;width:100%;text-align:left;border:0;background:var(--card);border-radius:16px;padding:16px;margin-bottom:10px}
+.sysbtn b{display:block;font-size:17px}.sysbtn span{display:block;margin-top:4px;font-size:13px;color:var(--muted)}
+.search{width:100%;margin-top:16px;border-radius:12px;border:1px solid #33333B;background:var(--card);padding:12px 14px;font-size:16px;outline:0}
+.acc-head{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;border:0;background:none;padding:12px 14px;text-align:left;border-top:1px solid var(--line)}
+.list>.acc-head:first-child,.list>div:first-child>.acc-head{border-top:0}
+.acc-head b{display:block;font-size:15px}.acc-head small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.acc-head .r{font-size:13px;color:var(--muted);white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 14px}
+.chip{border-radius:8px;background:#24242A;padding:6px 10px;font-size:13px}
+.grp{margin:0 10px 10px;background:var(--bg);border-radius:12px;overflow:hidden}
+.md{font-size:14px;line-height:21px;color:rgba(242,239,234,.9)}
+.md h3{font-size:17px;margin:14px 0 4px}.md h4{font-size:15px;margin:10px 0 4px}.md p{margin:6px 0}.md li{margin:3px 0 3px 4px}
+.empty{color:var(--muted);text-align:center;margin-top:40px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(function(){
+const API="https://hgzxowfegmvxqtryphbd.supabase.co/rest/v1/rpc/";
+const KEY="sb_publishable_LSSMoXyNchkWJ7c2gIdGxA_GRPdZcWX";
+const PIN_KEY="eventer:baza-pin";
+const ROLE={venue:"Площадки",specialist:"Специалисты",agency:"Агентства",contractor:"Подрядчики",artist:"Артисты"};
+const STAGE={in_base:"проверен",candidate:"кандидат",archive:"архив"};
+const SPEC={pending:"не размечено",auto:"разметил робот",needs_review:"нужна проверка",confirmed:"проверено человеком",owner:"указал исполнитель"};
+const TYPE={business:"Деловые",corporate:"Корпоративные",culture:"Концерты и фестивали",public:"Общественные",private:"Частные"};
+const app=document.getElementById("app");
+let state={pin:readPin(),data:null,sys:null,view:"main",section:null,open:null,q:"",busy:false,error:null};
+
+function readPin(){try{return localStorage.getItem(PIN_KEY)||""}catch(e){return ""}}
+function savePin(p){try{p?localStorage.setItem(PIN_KEY,p):localStorage.removeItem(PIN_KEY)}catch(e){/* приватный режим */}}
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const num=n=>Number(n||0).toLocaleString("ru-RU");
+const pct=(a,b)=>{if(!b)return 0;const v=a/b*100;return v>0&&v<1?Math.round(v*10)/10:Math.round(v)};
+const fmt=iso=>iso?new Date(iso).toLocaleString("ru-RU",{timeZone:"Asia/Almaty",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"—";
+const fmtDay=iso=>iso?new Date(iso).toLocaleDateString("ru-RU",{timeZone:"Asia/Almaty",day:"numeric",month:"long"}):"—";
+
+async function call(fn){
+  try{const r=await fetch(API+fn,{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json"},body:JSON.stringify({p_pin:state.pin}),cache:"no-store"});
+    if(!r.ok)return "error";const d=await r.json();if(d&&d.error)return "pin";return d}catch(e){return "error"}
+}
+async function refresh(){
+  if(!state.pin)return;state.busy=true;render();
+  const r=await call("eventer_dashboard_summary");state.busy=false;
+  if(r==="pin"){savePin(null);state.pin="";state.data=null;state.error="Неверный PIN";}
+  else if(r==="error"){state.error="Нет связи с базой. Попробуйте обновить.";}
+  else{state.error=null;state.data=r;}
+  render();
+}
+async function openSystem(){
+  state.view="system";state.section=null;state.open=null;state.q="";render();scrollTo(0,0);
+  if(state.sys)return;
+  const r=await call("eventer_dashboard_system");
+  if(r==="pin"){savePin(null);state.pin="";state.view="main";state.error="Неверный PIN";}
+  else if(r==="error"){state.sysError="Нет связи с базой. Попробуйте позже.";}
+  else state.sys=r;
+  render();
+}
+
+function tile(v,l,s,tone){return `<div class="tile ${tone||""}"><div class="v">${v}</div><div class="l">${esc(l)}</div>${s?`<div class="s">${esc(s)}</div>`:""}</div>`}
+function share(n,total,label){return `<div class="row rowcol"><div style="display:flex;justify-content:space-between;gap:10px"><span>${esc(label)}</span><span class="r"><b>${num(n)}</b> · ${pct(n,total)}%</span></div><div class="bar"><i style="width:${pct(n,total)}%"></i></div></div>`}
+
+function pinView(){
+  app.innerHTML=`<form class="pin" id="pf"><div style="font-size:28px;font-weight:700">База Eventer</div>
+  <p class="sub" style="font-size:14px;margin-top:8px">Введите PIN. Телефон запомнит его.</p>
+  <input id="pi" inputmode="numeric" autocomplete="one-time-code" placeholder="PIN" aria-label="PIN">
+  ${state.error?`<p style="color:var(--bad);font-size:14px;margin-top:12px">${esc(state.error)}</p>`:""}
+  <button class="go" type="submit">Войти</button></form>`;
+  document.getElementById("pf").onsubmit=e=>{e.preventDefault();const p=document.getElementById("pi").value.trim();if(!p)return;savePin(p);state.pin=p;state.error=null;refresh();};
+}
+
+function mainView(){
+  const d=state.data,t=d&&d.totals;
+  let h=`<div class="wrap"><header><div><h1>База Eventer</h1><div class="sub">Исполнители · обновлено ${d?fmt(d.at):"…"}</div></div>
+  <div class="btns"><button class="btn acc" id="sysb">Система</button><button class="btn" id="rb" ${state.busy?"disabled":""} aria-label="Обновить">${state.busy?"…":"↻"}</button></div></header>`;
+  if(state.error)h+=`<div class="note bad">${esc(state.error)}</div>`;
+  if(!d){h+=`<p class="empty">Загружаю…</p></div>`;app.innerHTML=h;bind();return}
+  const enr=d.robots.enrich||{},pend=enr.pending||0;
+  const specPending=(d.specialization.statuses||{}).pending||0;
+  h+=d.robots.spec_last||pend===0?`<div class="note ok">Роботы работают. Дозаполнение: ${fmt(d.robots.enrich_last)}${d.robots.spec_last?` · разметка: ${fmt(d.robots.spec_last)}`:""}</div>`
+     :`<div class="note warn"><b>Роботы стоят</b>Дозаполнение карточек остановлено ${fmtDay(d.robots.enrich_last)}: в очереди ${num(pend)}. Разметка специализации ещё не запускалась (${num(specPending)} не размечено). Нужен ключ Claude API в секретах «Eventer Data Base» и баланс: console.anthropic.com → Billing.</div>`;
+  h+=`<section><h2>Исполнители</h2><div class="grid">
+   ${tile(num(t.all),"Всего в базе","бизнес-единиц")}
+   ${tile(num(t.in_base),"Проверено",pct(t.in_base,t.all)+"% · в базе","ok")}
+   ${tile(num(t.candidate),"Ждут проверки","кандидаты",t.candidate>t.all*0.5?"bad":"")}
+   ${tile(num(t.new7),"Новых за неделю","за 30 дней "+num(t.new30))}
+   ${tile(num(t.archive),"В архиве","")}
+   ${tile(num(Object.values(d.applications||{}).reduce((a,b)=>a+b,0)),"Заявки исполнителей",Object.entries(d.applications||{}).map(([k,v])=>({pending:"ждут",approved:"приняты",rejected:"отклонены"}[k]||k)+" "+v).join(" · ")||"нет")}
+  </div></section>`;
+  h+=`<section><h2>Заполненность карточек</h2><div class="list">
+   ${share(t.phone,t.all,"С телефоном")}${share(t.instagram,t.all,"С Instagram")}${share(t.website,t.all,"С сайтом")}
+   ${share(t.capacity,t.all,"С вместимостью")}${share(t.price,t.all,"С ценой")}${share(t.description,t.all,"С описанием")}
+  </div></section>`;
+  h+=`<section><h2>По ролям</h2><div class="list">${d.roles.map(r=>`<div class="row"><span>${esc(ROLE[r.role]||r.role||"Без роли")}</span><span class="r"><b>${num(r.n)}</b> · проверено ${num(r.in_base)}</span></div>`).join("")}</div>
+   <p class="hint">Разметка не завершена: роли взяты из источников и частично ошибочны (например, автосалоны в «Агентствах»). Уточнит робот-разметчик.</p></section>`;
+  h+=`<section><h2>По городам</h2><div class="list">${d.cities.map(c=>`<div class="row"><span>${esc(c.city)}</span><span class="r"><b>${num(c.n)}</b> · проверено ${num(c.in_base)}</span></div>`).join("")}</div></section>`;
+  h+=`<section><h2>Категории</h2><div class="list">${d.categories.map(c=>`<div class="row"><span>${esc(c.category)}</span><span class="r"><b>${num(c.n)}</b></span></div>`).join("")}</div></section>`;
+  const st=d.specialization.statuses||{},ty=d.specialization.types||{};
+  h+=`<section><h2>Специализация (основной профиль)</h2><div class="list">${Object.entries(st).map(([k,v])=>`<div class="row"><span>${esc(SPEC[k]||k)}</span><span class="r"><b>${num(v)}</b></span></div>`).join("")}
+   ${Object.entries(ty).map(([k,v])=>`<div class="row"><span>${esc(TYPE[k]||k)}</span><span class="r"><b>${num(v)}</b></span></div>`).join("")}</div>
+   <p class="hint">Деловые · корпоративные · концерты и фестивали · общественные · частные. Заполняет робот-разметчик и сами исполнители.</p></section>`;
+  h+=`<section><h2>Последние добавленные</h2><div class="list">${d.recent.map(r=>`<div class="row"><div style="min-width:0"><div style="font-weight:600">${esc(r.name)}</div><div class="small">${esc([ROLE[r.role]||r.role,r.category,r.city].filter(Boolean).join(" · "))} · ${fmtDay(r.created)}</div></div><span class="tag ${r.stage==="in_base"?"ok":"cand"}">${esc(STAGE[r.stage]||r.stage)}</span></div>`).join("")}</div></section>`;
+  h+=`<button class="logout" id="lo">Выйти</button></div>`;
+  app.innerHTML=h;bind();
+}
+
+const SECTIONS=[["catalogs","Справочники"],["brief","Профи для брифа"],["docs","Инструкции"],["rules","Правила и термины"],["sources","Источники"]];
+function md(text){return text.split("\n").map(l=>{l=l.trim();if(!l)return"";const c=esc(l.replace(/\*\*(.+?)\*\*/g,"$1").replace(/`(.+?)`/g,"$1"));
+  if(/^#{1,2}\s/.test(l))return `<h3>${c.replace(/^#+\s*/,"")}</h3>`;if(/^#{3,6}\s/.test(l))return `<h4>${c.replace(/^#+\s*/,"")}</h4>`;
+  if(/^[-*•]\s/.test(l))return `<div class="li">• ${c.replace(/^[-*•]\s*/,"")}</div>`;if(/^-{3,}$/.test(l))return "<hr>";return `<p>${c}</p>`}).join("")}
+function systemView(){
+  const s=state.sys,sec=state.section,title=sec?SECTIONS.find(x=>x[0]===sec)[1]:"Система";
+  let h=`<div class="wrap"><header><button class="btn" id="bk">← ${sec?"Система":"Пульт"}</button><div style="font-size:20px;font-weight:700">${esc(title)}</div></header>`;
+  if(state.sysError)h+=`<div class="note bad">${esc(state.sysError)}</div>`;
+  if(!s){h+=state.sysError?"":`<p class="empty">Загружаю…</p>`;app.innerHTML=h+"</div>";bindSys();return}
+  const q=state.q.trim().toLowerCase(),m=(...p)=>!q||p.some(x=>x&&String(x).toLowerCase().includes(q));
+  if(!sec){
+    const cnt={catalogs:`${s.catalogs.length} справочников · ${s.catalogs.reduce((n,c)=>n+c.items.length,0)} значений`,brief:`${s.brief.length} профи · ${[...new Set(s.brief.map(b=>b.type))].join(", ")||"—"}`,docs:`${s.docs.length} документов`,rules:`${s.rules.length} записей`,sources:`${s.sources.length} источников · подключено ${s.sources.filter(x=>x.connected).length}`};
+    h+=`<div style="margin-top:20px">${SECTIONS.map(([k,l])=>`<button class="sysbtn" data-sec="${k}"><b>${l}</b><span>${cnt[k]}</span></button>`).join("")}</div><p class="hint">Только просмотр. Править справочники и правила — через менеджера Eventer App в Claude.</p></div>`;
+    app.innerHTML=h;bindSys();return;
+  }
+  if(sec!=="docs")h+=`<input class="search" id="sq" placeholder="Поиск" value="${esc(state.q)}">`;
+  if(sec==="catalogs"){
+    h+=`<div class="list" style="margin-top:14px">${s.catalogs.map(c=>{const items=c.items.filter(i=>m(i.name,i.description,i.parent,c.name));if(q&&!items.length)return"";const open=state.open===c.code||!!q;
+      let body="";if(open){const groups={};const flat=[];items.forEach(i=>{if(i.parent)(groups[i.parent]=groups[i.parent]||[]).push(i);else flat.push(i)});
+        body=Object.keys(groups).length?`<div class="grp">${Object.entries(groups).map(([g,l])=>`<div style="padding:10px 12px 4px;font-weight:600;font-size:14px">${esc(g)} <span class="small">${l.length}</span></div><div class="chips" style="padding:4px 12px 10px">${l.map(i=>`<span class="chip">${esc(i.name)}</span>`).join("")}</div>`).join("")}</div>`+(flat.length?`<div class="chips">${flat.map(i=>`<span class="chip">${esc(i.name)}</span>`).join("")}</div>`:"")
+          :`<div class="chips">${items.map(i=>`<span class="chip" title="${esc(i.description)}">${esc(i.name)}</span>`).join("")}</div>`}
+      return `<div><button class="acc-head" data-open="${esc(c.code)}"><span><b>${esc(c.name)}</b>${c.description?`<small>${esc(c.description)}</small>`:""}</span><span class="r">${c.items.length} ${open?"▴":"▾"}</span></button>${body}</div>`}).join("")}</div>`;
+  }
+  if(sec==="brief"){const types=[...new Set(s.brief.map(b=>b.type))];
+    h+=types.map(tp=>`<h2 style="margin-top:18px">${esc(tp)}</h2><div class="list">${s.brief.filter(b=>b.type===tp&&m(b.name,b.note)).map(b=>`<div class="row"><div><div style="font-weight:600">${esc(b.name)}${b.must?' <span class="tag ok">обязательно</span>':""}</div>${b.note?`<div class="small">${esc(b.note)}</div>`:""}</div><span class="r">${esc({per_guest:"на гостя",per_show:"за выход",per_project:"за проект",per_item:"за единицу"}[b.unit]||b.unit||"")}</span></div>`).join("")}</div>`).join("")||`<p class="empty">Пусто</p>`;
+    h+=`<p class="hint">Общий справочник Eventer и Афиши. Профи для деловых, корпоративных, концертов и общественных событий пока описаны в приложении — перенос в справочник следующим шагом.</p>`;}
+  if(sec==="docs"){
+    if(state.open){const d=s.docs.find(x=>x.id===state.open);h+=`<article style="margin-top:18px"><button class="logout" style="margin:0 0 10px" id="dl">← Все инструкции</button><h2 style="text-transform:none;letter-spacing:0;font-size:19px;color:var(--text)">${esc(d.title)}</h2><div class="small" style="margin-bottom:12px">${esc([d.step,d.status,d.version].filter(Boolean).join(" · "))}</div><div class="md">${d.md?md(d.md):"<p>Текста нет</p>"}</div></article>`}
+    else h+=`<div class="list" style="margin-top:18px">${s.docs.map(d=>`<button class="acc-head" data-doc="${esc(d.id)}"><span><b>${esc(d.title)}</b><small>${esc([d.step,d.status].filter(Boolean).join(" · "))}</small></span><span class="r">›</span></button>`).join("")||`<div class="row">Инструкций пока нет</div>`}</div>`;
+  }
+  if(sec==="rules")h+=`<div class="list" style="margin-top:14px">${s.rules.filter(r=>m(r.title,r.body,r.grp)).map(r=>`<details class="row rowcol"><summary style="list-style:none;cursor:pointer"><span class="small">${r.layer==="term"?"Термин":"Правило"}${r.grp?" · "+esc(r.grp):""}${r.decision?" · решение №"+r.decision:""}</span><div style="font-weight:600">${esc(r.title)}</div></summary>${r.body?`<p class="md">${esc(r.body)}</p>`:""}</details>`).join("")||`<div class="row">Правил пока нет — справочник правил базы Eventer ещё не заполнен.</div>`}</div>`;
+  if(sec==="sources")h+=`<div class="list" style="margin-top:14px">${s.sources.filter(x=>m(x.name,x.url,x.group,x.scope)).map(x=>`<div class="row"><div style="min-width:0"><div style="font-weight:600">${esc(x.name)}</div><div class="small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc([x.group,x.scope,x.cadence,x.url].filter(Boolean).join(" · "))}</div></div><span class="tag ${x.connected?"ok":"cand"}">${x.connected?"подключён":"нет"}</span></div>`).join("")}</div>`;
+  app.innerHTML=h+"</div>";bindSys();
+}
+
+function bind(){const s=document.getElementById("sysb");if(s)s.onclick=openSystem;const r=document.getElementById("rb");if(r)r.onclick=refresh;const l=document.getElementById("lo");if(l)l.onclick=()=>{savePin(null);state.pin="";state.data=null;state.sys=null;render()}}
+function bindSys(){
+  document.getElementById("bk").onclick=()=>{if(state.section){state.section=null;state.open=null;state.q=""}else state.view="main";render();scrollTo(0,0)};
+  app.querySelectorAll("[data-sec]").forEach(b=>b.onclick=()=>{state.section=b.dataset.sec;state.open=null;state.q="";render();scrollTo(0,0)});
+  app.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{state.open=state.open===b.dataset.open?null:b.dataset.open;render()});
+  app.querySelectorAll("[data-doc]").forEach(b=>b.onclick=()=>{state.open=b.dataset.doc;render();scrollTo(0,0)});
+  const dl=document.getElementById("dl");if(dl)dl.onclick=()=>{state.open=null;render()};
+  const sq=document.getElementById("sq");if(sq){sq.oninput=e=>{state.q=e.target.value;const pos=e.target.selectionStart;render();const n=document.getElementById("sq");n.focus();n.setSelectionRange(pos,pos)}}
+}
+function render(){if(!state.pin)return pinView();state.view==="system"?systemView():mainView()}
+
+render();
+if(state.pin)refresh();
+setInterval(()=>{if(state.pin&&state.view==="main"&&!document.hidden)refresh()},60000);
+})();
+</script>
+</body>
+</html>
