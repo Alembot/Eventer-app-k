@@ -32,6 +32,7 @@ h1{font-size:24px;margin:0;line-height:1.15}
 .note{margin-top:16px;border-radius:14px;padding:14px;font-size:14px;line-height:20px}
 .note.ok{background:var(--okbg);color:var(--ok)}.note.bad{background:var(--badbg);color:var(--bad)}.note.warn{background:var(--warnbg);color:var(--warn)}
 .note b{display:block;font-size:15px;margin-bottom:4px}
+button.note{border:0;font:inherit;display:block}
 section{margin-top:26px}
 h2{margin:0 0 10px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -130,38 +131,55 @@ function pinView(){
 
 function mainView(){
   const d=state.data,t=d&&d.totals;
-  let h=`<div class="wrap"><header><div><h1>База Eventer</h1><div class="sub">Исполнители · обновлено ${d?fmt(d.at):"…"}</div></div>
-  <div class="btns"><button class="btn acc" id="sysb">Система</button><button class="btn" id="rb" ${state.busy?"disabled":""} aria-label="Обновить">${state.busy?"…":"↻"}</button></div></header>`;
+  let h=`<div class="wrap"><header><div><h1>База Eventer</h1><div class="sub">обновлено ${d?fmt(d.at):"…"}</div></div>
+  <div class="btns"><button class="btn" id="robb">Робот</button><button class="btn acc" id="sysb">Система</button><button class="btn" id="rb" ${state.busy?"disabled":""} aria-label="Обновить">${state.busy?"…":"↻"}</button></div></header>`;
   if(state.error)h+=`<div class="note bad">${esc(state.error)}</div>`;
   if(!d){h+=`<p class="empty">Загружаю…</p></div>`;app.innerHTML=h;bind();return}
-  const enr=d.robots.enrich||{},pend=enr.pending||0;
-  const specPending=(d.specialization.statuses||{}).pending||0;
-  h+=d.robots.spec_last||pend===0?`<div class="note ok">Роботы работают. Дозаполнение: ${fmt(d.robots.enrich_last)}${d.robots.spec_last?` · разметка: ${fmt(d.robots.spec_last)}`:""}</div>`
-     :`<div class="note warn"><b>Роботы стоят</b>Дозаполнение карточек остановлено ${fmtDay(d.robots.enrich_last)}: в очереди ${num(pend)}. Разметка специализации ещё не запускалась (${num(specPending)} не размечено). Нужен ключ Claude API в секретах «Eventer Data Base» и баланс: console.anthropic.com → Billing.</div>`;
-  h+=`<section><h2>Исполнители</h2><div class="grid">
-   ${tile(num(t.all),"Всего в базе","бизнес-единиц")}
-   ${tile(num(t.in_base),"Проверено",pct(t.in_base,t.all)+"% · в базе","ok")}
-   ${tile(num(t.candidate),"Ждут проверки","кандидаты",t.candidate>t.all*0.5?"bad":"")}
-   ${tile(num(t.new7),"Новых за неделю","за 30 дней "+num(t.new30))}
-   ${tile(num(t.archive),"В архиве","")}
-   ${tile(num(Object.values(d.applications||{}).reduce((a,b)=>a+b,0)),"Заявки исполнителей",Object.entries(d.applications||{}).map(([k,v])=>({pending:"ждут",approved:"приняты",rejected:"отклонены"}[k]||k)+" "+v).join(" · ")||"нет")}
+  h+=`<section><div class="grid">
+   ${tile(num(t.all),"Сырые данные")}
+   ${tile(num(t.in_base),"В базе","","ok")}
+   ${tile(num(t.candidate),"Ждут проверки")}
+   ${tile(num(t.new7),"Новых за неделю")}
   </div></section>`;
-  h+=`<section><h2>Заполненность карточек</h2><div class="list">
-   ${share(t.phone,t.all,"С телефоном")}${share(t.instagram,t.all,"С Instagram")}${share(t.website,t.all,"С сайтом")}
-   ${share(t.capacity,t.all,"С вместимостью")}${share(t.price,t.all,"С ценой")}${share(t.description,t.all,"С описанием")}
-  </div></section>`;
-  h+=`<section><h2>По ролям</h2><div class="list">${d.roles.map(r=>`<div class="row"><span>${esc(ROLE[r.role]||r.role||"Без роли")}</span><span class="r"><b>${num(r.n)}</b> · проверено ${num(r.in_base)}</span></div>`).join("")}</div>
-   <p class="hint">Разметка не завершена: роли взяты из источников и частично ошибочны (например, автосалоны в «Агентствах»). Уточнит робот-разметчик.</p></section>`;
-  h+=`<section><h2>По городам</h2><div class="list">${d.cities.map(c=>`<div class="row"><span>${esc(c.city)}</span><span class="r"><b>${num(c.n)}</b> · проверено ${num(c.in_base)}</span></div>`).join("")}</div></section>`;
-  h+=`<section><h2>Категории</h2><div class="list">${d.categories.map(c=>`<div class="row"><span>${esc(c.category)}</span><span class="r"><b>${num(c.n)}</b></span></div>`).join("")}</div></section>`;
-  const st=d.specialization.statuses||{},ty=d.specialization.types||{};
-  h+=`<section><h2>Специализация (основной профиль)</h2><div class="list">${Object.entries(st).map(([k,v])=>`<div class="row"><span>${esc(SPEC[k]||k)}</span><span class="r"><b>${num(v)}</b></span></div>`).join("")}
-   ${Object.entries(ty).map(([k,v])=>`<div class="row"><span>${esc(TYPE[k]||k)}</span><span class="r"><b>${num(v)}</b></span></div>`).join("")}</div>
-   <p class="hint">Деловые · корпоративные · концерты и фестивали · общественные · частные. Заполняет робот-разметчик и сами исполнители.</p></section>`;
-  h+=`<section><h2>Последние добавленные</h2><div class="list">${d.recent.map(r=>`<div class="row"><div style="min-width:0"><div style="font-weight:600">${esc(r.name)}</div><div class="small">${esc([ROLE[r.role]||r.role,r.category,r.city].filter(Boolean).join(" · "))} · ${fmtDay(r.created)}</div></div><span class="tag ${r.stage==="in_base"?"ok":"cand"}">${esc(STAGE[r.stage]||r.stage)}</span></div>`).join("")}</div></section>`;
+  const rv=d.review||{};
+  if(rv.check||rv.archive||rv.afisha)h+=`<button class="note warn" id="revb" style="width:100%;text-align:left;cursor:pointer"><b>Ждут вашего решения</b>${[rv.check?"проверить "+num(rv.check):"",rv.archive?"в архив "+num(rv.archive):"",rv.afisha?"в Афишу "+num(rv.afisha):""].filter(Boolean).join(" · ")}</button>`;
+  const ORDER=["venue","contractor","artist","agency","specialist"];
+  const roles=[...(d.roles||[])].sort((x,y)=>ORDER.indexOf(x.role)-ORDER.indexOf(y.role));
+  h+=`<section><h2>По ролям</h2><div class="list">${roles.map(r=>`<div class="row"><span>${esc(ROLE[r.role]||"Без роли")}</span><span class="r"><b>${num(r.n)}</b></span></div>`).join("")}</div></section>`;
+  const c3=d.cities3||{};
+  h+=`<section><h2>По городам</h2><div class="list">
+   <div class="row"><span>Алматы</span><span class="r"><b>${num(c3.almaty)}</b></span></div>
+   <div class="row"><span>Астана</span><span class="r"><b>${num(c3.astana)}</b></span></div>
+   <div class="row"><span>Другие города</span><span class="r"><b>${num(c3.other)}</b></span></div></div></section>`;
+  const cm=d.categories_main||{top:[],other:0};
+  h+=`<section><h2>По категориям</h2><div class="list">${cm.top.map(c=>`<div class="row"><span>${esc(c.category)}</span><span class="r"><b>${num(c.n)}</b></span></div>`).join("")}
+   ${cm.other?`<div class="row"><span>Другие</span><span class="r"><b>${num(cm.other)}</b></span></div>`:""}</div></section>`;
+  const RD={business:"Деловые",corporate:"Корпоративные",culture:"Концерты и фестивали",public:"Общественные"},NEED=10;
+  h+=`<section><h2>Готовность направлений</h2><div class="list">${(d.readiness||[]).map(r=>{const ok=r.venue>=NEED&&r.contractor>=NEED&&r.artist>=NEED&&r.agency>=NEED;
+    return `<div class="row rowcol"><div style="display:flex;justify-content:space-between;gap:10px"><span style="font-weight:600">${esc(RD[r.type]||r.type)}</span><span class="tag ${ok?"ok":"cand"}">${ok?"можно открывать":"собираем"}</span></div>
+    <div class="small">площадки ${num(r.venue)} · подрядчики ${num(r.contractor)} · артисты ${num(r.artist)} · агентства ${num(r.agency)}</div></div>`}).join("")}</div>
+   <p class="hint">Открываем направление, когда в каждой роли от ${NEED} профильных исполнителей.</p></section>`;
   h+=`<button class="logout" id="lo">Выйти</button></div>`;
   app.innerHTML=h;bind();
 }
+
+function robotView(){
+  const d=state.data,t=d&&d.totals;
+  let h=`<div class="wrap"><header><button class="btn" id="bk2">← Пульт</button><div style="font-size:20px;font-weight:700">Работа робота</div></header>`;
+  if(!d){h+=`<p class="empty">Загружаю…</p></div>`;app.innerHTML=h;bindRobot();return}
+  const rv=d.review||{},st=d.specialization.statuses||{},ty=d.specialization.types||{};
+  h+=`<div class="note ${d.robots.spec_last?"ok":"warn"}">Разметка: ${d.robots.spec_last?"последний запуск "+fmt(d.robots.spec_last):"ещё не запускалась"}</div>`;
+  h+=`<section><h2>Разметка карточек</h2><div class="grid">
+   ${tile(num(rv.done),"Проверил робот")}${tile(num(rv.check),"На проверку")}${tile(num(rv.archive),"Предложил в архив")}${tile(num(rv.afisha),"Предложил в Афишу")}</div></section>`;
+  h+=`<section><h2>Основной профиль</h2><div class="list">${Object.entries(ty).map(([k,v])=>`<div class="row"><span>${esc(TYPE[k]||k)}</span><span class="r"><b>${num(v)}</b></span></div>`).join("")||`<div class="row"><span>Пока никто</span></div>`}
+   ${Object.entries(st).map(([k,v])=>`<div class="row"><span class="small">${esc(SPEC[k]||k)}</span><span class="r">${num(v)}</span></div>`).join("")}</div></section>`;
+  h+=`<section><h2>Заполненность карточек</h2><div class="list">
+   ${share(t.phone,t.all,"С телефоном")}${share(t.instagram,t.all,"С Instagram")}${share(t.website,t.all,"С сайтом")}
+   ${share(t.capacity,t.all,"С вместимостью")}${share(t.price,t.all,"С ценой")}${share(t.description,t.all,"С описанием")}</div></section>`;
+  h+=`<section><h2>Последние добавленные</h2><div class="list">${d.recent.map(r=>`<div class="row"><div style="min-width:0"><div style="font-weight:600">${esc(r.name)}</div><div class="small">${esc([ROLE[r.role]||r.role,r.category,r.city].filter(Boolean).join(" · "))} · ${fmtDay(r.created)}</div></div><span class="tag ${r.stage==="in_base"?"ok":"cand"}">${esc(STAGE[r.stage]||r.stage)}</span></div>`).join("")}</div></section></div>`;
+  app.innerHTML=h;bindRobot();
+}
+function bindRobot(){const b=document.getElementById("bk2");if(b)b.onclick=()=>{state.view="main";render();scrollTo(0,0)}}
 
 const SECTIONS=[["catalogs","Справочники"],["brief","Профи для брифа"],["docs","Инструкции"],["rules","Правила и термины"],["sources","Источники"]];
 function md(text){return text.split("\n").map(l=>{l=l.trim();if(!l)return"";const c=esc(l.replace(/\*\*(.+?)\*\*/g,"$1").replace(/`(.+?)`/g,"$1"));
@@ -198,7 +216,7 @@ function systemView(){
   app.innerHTML=h+"</div>";bindSys();
 }
 
-function bind(){const s=document.getElementById("sysb");if(s)s.onclick=openSystem;const r=document.getElementById("rb");if(r)r.onclick=refresh;const l=document.getElementById("lo");if(l)l.onclick=()=>{savePin(null);state.pin="";state.data=null;state.sys=null;render()}}
+function bind(){const rb2=document.getElementById("robb");if(rb2)rb2.onclick=()=>{state.view="robot";render();scrollTo(0,0)};const rv=document.getElementById("revb");if(rv)rv.onclick=()=>{state.view="robot";render();scrollTo(0,0)};const s=document.getElementById("sysb");if(s)s.onclick=openSystem;const r=document.getElementById("rb");if(r)r.onclick=refresh;const l=document.getElementById("lo");if(l)l.onclick=()=>{savePin(null);state.pin="";state.data=null;state.sys=null;render()}}
 function bindSys(){
   document.getElementById("bk").onclick=()=>{if(state.section){state.section=null;state.open=null;state.q=""}else state.view="main";render();scrollTo(0,0)};
   app.querySelectorAll("[data-sec]").forEach(b=>b.onclick=()=>{state.section=b.dataset.sec;state.open=null;state.q="";render();scrollTo(0,0)});
@@ -207,7 +225,7 @@ function bindSys(){
   const dl=document.getElementById("dl");if(dl)dl.onclick=()=>{state.open=null;render()};
   const sq=document.getElementById("sq");if(sq){sq.oninput=e=>{state.q=e.target.value;const pos=e.target.selectionStart;render();const n=document.getElementById("sq");n.focus();n.setSelectionRange(pos,pos)}}
 }
-function render(){if(!state.pin)return pinView();state.view==="system"?systemView():mainView()}
+function render(){if(!state.pin)return pinView();state.view==="system"?systemView():state.view==="robot"?robotView():mainView()}
 
 render();
 if(state.pin)refresh();
