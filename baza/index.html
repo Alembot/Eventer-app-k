@@ -33,6 +33,9 @@ h1{font-size:24px;margin:0;line-height:1.15}
 .note.ok{background:var(--okbg);color:var(--ok)}.note.bad{background:var(--badbg);color:var(--bad)}.note.warn{background:var(--warnbg);color:var(--warn)}
 .note b{display:block;font-size:15px;margin-bottom:4px}
 button.note{border:0;font:inherit;display:block}
+button.rowbtn{width:100%;border:0;border-top:1px solid var(--line);background:none;color:inherit;font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.row.subrow{padding-left:30px;font-size:14px;color:var(--muted)}
+.grid.g3{grid-template-columns:repeat(3,1fr)}
 section{margin-top:26px}
 h2{margin:0 0 10px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -95,8 +98,8 @@ const pct=(a,b)=>{if(!b)return 0;const v=a/b*100;return v>0&&v<1?Math.round(v*10
 const fmt=iso=>iso?new Date(iso).toLocaleString("ru-RU",{timeZone:"Asia/Almaty",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"—";
 const fmtDay=iso=>iso?new Date(iso).toLocaleDateString("ru-RU",{timeZone:"Asia/Almaty",day:"numeric",month:"long"}):"—";
 
-async function call(fn){
-  try{const r=await fetch(API+fn,{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json"},body:JSON.stringify({p_pin:state.pin}),cache:"no-store"});
+async function call(fn,extra){
+  try{const r=await fetch(API+fn,{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json"},body:JSON.stringify(Object.assign({p_pin:state.pin},extra||{})),cache:"no-store"});
     if(!r.ok)return "error";const d=await r.json();if(d&&d.error)return "pin";return d}catch(e){return "error"}
 }
 async function refresh(){
@@ -145,20 +148,12 @@ function mainView(){
   if(rv.check||rv.archive||rv.afisha)h+=`<button class="note warn" id="revb" style="width:100%;text-align:left;cursor:pointer"><b>Ждут вашего решения</b>${[rv.check?"проверить "+num(rv.check):"",rv.archive?"в архив "+num(rv.archive):"",rv.afisha?"в Афишу "+num(rv.afisha):""].filter(Boolean).join(" · ")}</button>`;
   const ORDER=["venue","contractor","artist","agency","specialist"];
   const roles=[...(d.roles||[])].sort((x,y)=>ORDER.indexOf(x.role)-ORDER.indexOf(y.role));
-  h+=`<section><h2>По ролям</h2><div class="list">${roles.map(r=>`<div class="row"><span>${esc(ROLE[r.role]||"Без роли")}</span><span class="r"><b>${num(r.n)}</b></span></div>`).join("")}</div></section>`;
+  h+=`<section><h2>По ролям</h2><div class="list">${roles.map(r=>`<button class="row rowbtn" data-role="${esc(r.role)}"><span>${esc(ROLE[r.role]||"Без роли")}</span><span class="r"><b>${num(r.n)}</b> ›</span></button>`).join("")}</div></section>`;
   const c3=d.cities3||{};
   h+=`<section><h2>По городам</h2><div class="list">
    <div class="row"><span>Алматы</span><span class="r"><b>${num(c3.almaty)}</b></span></div>
    <div class="row"><span>Астана</span><span class="r"><b>${num(c3.astana)}</b></span></div>
    <div class="row"><span>Другие города</span><span class="r"><b>${num(c3.other)}</b></span></div></div></section>`;
-  const cm=d.categories_main||{top:[],other:0};
-  h+=`<section><h2>По категориям</h2><div class="list">${cm.top.map(c=>`<div class="row"><span>${esc(c.category)}</span><span class="r"><b>${num(c.n)}</b></span></div>`).join("")}
-   ${cm.other?`<div class="row"><span>Другие</span><span class="r"><b>${num(cm.other)}</b></span></div>`:""}</div></section>`;
-  const RD={business:"Деловые",corporate:"Корпоративные",culture:"Концерты и фестивали",public:"Общественные"},NEED=10;
-  h+=`<section><h2>Готовность направлений</h2><div class="list">${(d.readiness||[]).map(r=>{const ok=r.venue>=NEED&&r.contractor>=NEED&&r.artist>=NEED&&r.agency>=NEED;
-    return `<div class="row rowcol"><div style="display:flex;justify-content:space-between;gap:10px"><span style="font-weight:600">${esc(RD[r.type]||r.type)}</span><span class="tag ${ok?"ok":"cand"}">${ok?"можно открывать":"собираем"}</span></div>
-    <div class="small">площадки ${num(r.venue)} · подрядчики ${num(r.contractor)} · артисты ${num(r.artist)} · агентства ${num(r.agency)}</div></div>`}).join("")}</div>
-   <p class="hint">Открываем направление, когда в каждой роли от ${NEED} профильных исполнителей.</p></section>`;
   h+=`<button class="logout" id="lo">Выйти</button></div>`;
   app.innerHTML=h;bind();
 }
@@ -179,6 +174,38 @@ function robotView(){
   h+=`<section><h2>Последние добавленные</h2><div class="list">${d.recent.map(r=>`<div class="row"><div style="min-width:0"><div style="font-weight:600">${esc(r.name)}</div><div class="small">${esc([ROLE[r.role]||r.role,r.category,r.city].filter(Boolean).join(" · "))} · ${fmtDay(r.created)}</div></div><span class="tag ${r.stage==="in_base"?"ok":"cand"}">${esc(STAGE[r.stage]||r.stage)}</span></div>`).join("")}</div></section></div>`;
   app.innerHTML=h;bindRobot();
 }
+
+async function openRole(role){
+  state.view="role";state.role=role;state.openGroup=null;state.roleData=(state.roles||{})[role]||null;render();scrollTo(0,0);
+  const r=await call("eventer_dashboard_role",{p_role:role});
+  if(r==="pin"){savePin(null);state.pin="";state.view="main";state.error="Неверный PIN";}
+  else if(r!=="error"){state.roles=Object.assign(state.roles||{},{[role]:r});if(state.role===role)state.roleData=r;}
+  render();
+}
+function roleView(){
+  const d=state.roleData;
+  let h=`<div class="wrap"><header><button class="btn" id="bk3">← Пульт</button><div style="font-size:20px;font-weight:700">${esc(ROLE[state.role]||state.role)}</div></header>`;
+  if(!d){h+=`<p class="empty">Загружаю…</p></div>`;app.innerHTML=h;bindRole();return}
+  const t=d.totals;
+  h+=`<section><div class="grid g3">${tile(num(t.all),"Всего")}${tile(num(t.in_base),"В базе","","ok")}${tile(num(t.candidate),"Ждут проверки")}</div></section>`;
+  if(d.fit)h+=`<section><h2>Нужна ли Eventer</h2><div class="list">
+    <div class="row"><span>Подходит</span><span class="r"><b>${num(d.fit.yes)}</b></span></div>
+    <div class="row"><span>В Афишу</span><span class="r"><b>${num(d.fit.afisha)}</b></span></div>
+    <div class="row"><span>Ещё не проверена</span><span class="r"><b>${num(d.fit.unchecked)}</b></span></div></div></section>`;
+  h+=`<section><h2>По категориям</h2><div class="list">${(d.groups||[]).map((g,i)=>{const open=state.openGroup===i;
+    return `<button class="row rowbtn" data-g="${i}"><span>${esc(g.category)}</span><span class="r"><b>${num(g.n)}</b> ${g.subs&&g.subs.length>1?(open?"▾":"›"):""}</span></button>${open?g.subs.map(x=>`<div class="row subrow"><span>${esc(x.name)}</span><span class="r">${num(x.n)}</span></div>`).join(""):""}`}).join("")}</div></section>`;
+  if(d.capacity)h+=`<section><h2>По вместимости</h2><div class="list">${d.capacity.map(c=>`<div class="row"><span>${esc(c.label)}</span><span class="r"><b>${num(c.n)}</b></span></div>`).join("")}</div></section>`;
+  if(!d.capacity&&state.role!=="venue"){const ty=d.types||{},T=Object.assign({},TYPE,{none:"Ещё не размечено"});
+    h+=`<section><h2>По типам событий</h2><div class="list">${["business","corporate","culture","public","private","none"].filter(k=>ty[k]).map(k=>`<div class="row"><span>${esc(T[k])}</span><span class="r"><b>${num(ty[k])}</b></span></div>`).join("")}</div></section>`}
+  const c3=d.cities3||{};
+  h+=`<section><h2>По городам</h2><div class="list">
+   <div class="row"><span>Алматы</span><span class="r"><b>${num(c3.almaty)}</b></span></div>
+   <div class="row"><span>Астана</span><span class="r"><b>${num(c3.astana)}</b></span></div>
+   <div class="row"><span>Другие города</span><span class="r"><b>${num(c3.other)}</b></span></div></div></section></div>`;
+  app.innerHTML=h;bindRole();
+}
+function bindRole(){const b=document.getElementById("bk3");if(b)b.onclick=()=>{state.view="main";render();scrollTo(0,0)};
+  document.querySelectorAll("[data-g]").forEach(el=>el.onclick=()=>{const i=+el.dataset.g;state.openGroup=state.openGroup===i?null:i;render()})}
 function bindRobot(){const b=document.getElementById("bk2");if(b)b.onclick=()=>{state.view="main";render();scrollTo(0,0)}}
 
 const SECTIONS=[["catalogs","Справочники"],["brief","Профи для брифа"],["docs","Инструкции"],["rules","Правила и термины"],["sources","Источники"]];
@@ -216,7 +243,7 @@ function systemView(){
   app.innerHTML=h+"</div>";bindSys();
 }
 
-function bind(){const rb2=document.getElementById("robb");if(rb2)rb2.onclick=()=>{state.view="robot";render();scrollTo(0,0)};const rv=document.getElementById("revb");if(rv)rv.onclick=()=>{state.view="robot";render();scrollTo(0,0)};const s=document.getElementById("sysb");if(s)s.onclick=openSystem;const r=document.getElementById("rb");if(r)r.onclick=refresh;const l=document.getElementById("lo");if(l)l.onclick=()=>{savePin(null);state.pin="";state.data=null;state.sys=null;render()}}
+function bind(){document.querySelectorAll("[data-role]").forEach(el=>el.onclick=()=>openRole(el.dataset.role));const rb2=document.getElementById("robb");if(rb2)rb2.onclick=()=>{state.view="robot";render();scrollTo(0,0)};const rv=document.getElementById("revb");if(rv)rv.onclick=()=>{state.view="robot";render();scrollTo(0,0)};const s=document.getElementById("sysb");if(s)s.onclick=openSystem;const r=document.getElementById("rb");if(r)r.onclick=refresh;const l=document.getElementById("lo");if(l)l.onclick=()=>{savePin(null);state.pin="";state.data=null;state.sys=null;render()}}
 function bindSys(){
   document.getElementById("bk").onclick=()=>{if(state.section){state.section=null;state.open=null;state.q=""}else state.view="main";render();scrollTo(0,0)};
   app.querySelectorAll("[data-sec]").forEach(b=>b.onclick=()=>{state.section=b.dataset.sec;state.open=null;state.q="";render();scrollTo(0,0)});
@@ -225,7 +252,7 @@ function bindSys(){
   const dl=document.getElementById("dl");if(dl)dl.onclick=()=>{state.open=null;render()};
   const sq=document.getElementById("sq");if(sq){sq.oninput=e=>{state.q=e.target.value;const pos=e.target.selectionStart;render();const n=document.getElementById("sq");n.focus();n.setSelectionRange(pos,pos)}}
 }
-function render(){if(!state.pin)return pinView();state.view==="system"?systemView():state.view==="robot"?robotView():mainView()}
+function render(){if(!state.pin)return pinView();state.view==="system"?systemView():state.view==="robot"?robotView():state.view==="role"?roleView():mainView()}
 
 render();
 if(state.pin)refresh();
