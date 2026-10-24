@@ -162,7 +162,7 @@ function mainView(){
 
 function robotView(){
   const d=state.data,t=d&&d.totals;
-  let h=`<div class="wrap"><header><button class="btn" id="bk2">← Пульт</button><div style="font-size:20px;font-weight:700">Работа робота</div></header>`;
+  let h=`<div class="wrap"><header><button class="btn" id="bk2">← Назад</button><div style="font-size:20px;font-weight:700">Работа робота</div></header>`;
   if(!d){h+=`<p class="empty">Загружаю…</p></div>`;app.innerHTML=h;bindRobot();return}
   const rv=d.review||{},st=d.specialization.statuses||{},ty=d.specialization.types||{};
   h+=`<div class="note ${d.robots.spec_last?"ok":"warn"}">Разметка: ${d.robots.spec_last?"последний запуск "+fmt(d.robots.spec_last):"ещё не запускалась"}</div>`;
@@ -186,7 +186,7 @@ async function openRole(role){
 }
 function roleView(){
   const d=state.roleData;
-  let h=`<div class="wrap"><header><button class="btn" id="bk3">← Пульт</button><div style="font-size:20px;font-weight:700">${esc(ROLE[state.role]||state.role)}</div></header>`;
+  let h=`<div class="wrap"><header><button class="btn" id="bk3">← Назад</button><div style="font-size:20px;font-weight:700">${esc(ROLE[state.role]||state.role)}</div></header>`;
   if(!d){h+=`<p class="empty">Загружаю…</p></div>`;app.innerHTML=h;bindRole();return}
   const t=d.totals;
   h+=`<section><div class="grid g3">${tile(num(t.all),"Всего")}${tile(num(t.in_base),"В базе","","ok")}${tile(num(t.candidate),"Ждут проверки")}</div></section>`;
@@ -214,7 +214,7 @@ function md(text){return text.split("\n").map(l=>{l=l.trim();if(!l)return"";cons
   if(/^[-*•]\s/.test(l))return `<div class="li">• ${c.replace(/^[-*•]\s*/,"")}</div>`;if(/^-{3,}$/.test(l))return "<hr>";return `<p>${c}</p>`}).join("")}
 function systemView(){
   const s=state.sys,sec=state.section,title=sec?SECTIONS.find(x=>x[0]===sec)[1]:"Система";
-  let h=`<div class="wrap"><header><button class="btn" id="bk">← ${sec?"Система":"Пульт"}</button><div style="font-size:20px;font-weight:700">${esc(title)}</div></header>`;
+  let h=`<div class="wrap"><header><button class="btn" id="bk">← Назад</button><div style="font-size:20px;font-weight:700">${esc(title)}</div></header>`;
   if(state.sysError)h+=`<div class="note bad">${esc(state.sysError)}</div>`;
   if(!s){h+=state.sysError?"":`<p class="empty">Загружаю…</p>`;app.innerHTML=h+"</div>";bindSys();return}
   const q=state.q.trim().toLowerCase(),m=(...p)=>!q||p.some(x=>x&&String(x).toLowerCase().includes(q));
@@ -235,7 +235,7 @@ function systemView(){
     h+=types.map(tp=>`<h2 style="margin-top:18px">${esc(tp)}</h2><div class="list">${s.brief.filter(b=>b.type===tp&&m(b.name,b.note)).map(b=>`<div class="row"><div><div style="font-weight:600">${esc(b.name)}${b.must?' <span class="tag ok">обязательно</span>':""}</div>${b.note?`<div class="small">${esc(b.note)}</div>`:""}</div><span class="r">${esc({per_guest:"на гостя",per_show:"за выход",per_project:"за проект",per_item:"за единицу"}[b.unit]||b.unit||"")}</span></div>`).join("")}</div>`).join("")||`<p class="empty">Пусто</p>`;
     h+=`<p class="hint">Общий справочник Eventer и Афиши. Профи для деловых, корпоративных, концертов и общественных событий пока описаны в приложении — перенос в справочник следующим шагом.</p>`;}
   if(sec==="docs"){
-    if(state.open){const d=s.docs.find(x=>x.id===state.open);h+=`<article style="margin-top:18px"><button class="logout" style="margin:0 0 10px" id="dl">← Все инструкции</button><h2 style="text-transform:none;letter-spacing:0;font-size:19px;color:var(--text)">${esc(d.title)}</h2><div class="small" style="margin-bottom:12px">${esc([d.step,d.status,d.version].filter(Boolean).join(" · "))}</div><div class="md">${d.md?md(d.md):"<p>Текста нет</p>"}</div></article>`}
+    if(state.open){const d=s.docs.find(x=>x.id===state.open);h+=`<article style="margin-top:18px"><h2 style="text-transform:none;letter-spacing:0;font-size:19px;color:var(--text)">${esc(d.title)}</h2><div class="small" style="margin-bottom:12px">${esc([d.step,d.status,d.version].filter(Boolean).join(" · "))}</div><div class="md">${d.md?md(d.md):"<p>Текста нет</p>"}</div></article>`}
     else h+=`<div class="list" style="margin-top:18px">${s.docs.map(d=>`<button class="acc-head" data-doc="${esc(d.id)}"><span><b>${esc(d.title)}</b><small>${esc([d.step,d.status].filter(Boolean).join(" · "))}</small></span><span class="r">›</span></button>`).join("")||`<div class="row">Инструкций пока нет</div>`}</div>`;
   }
   if(sec==="rules")h+=`<div class="list" style="margin-top:14px">${s.rules.filter(r=>m(r.title,r.body,r.grp)).map(r=>`<details class="row rowcol"><summary style="list-style:none;cursor:pointer"><span class="small">${r.layer==="term"?"Термин":"Правило"}${r.grp?" · "+esc(r.grp):""}${r.decision?" · решение №"+r.decision:""}</span><div style="font-weight:600">${esc(r.title)}</div></summary>${r.body?`<p class="md">${esc(r.body)}</p>`:""}</details>`).join("")||`<div class="row">Правил пока нет — справочник правил базы Eventer ещё не заполнен.</div>`}</div>`;
@@ -245,7 +245,7 @@ function systemView(){
 
 function bind(){const ocm=document.getElementById("ocm");if(ocm)ocm.onclick=()=>{state.otherCitiesMain=!state.otherCitiesMain;render()};document.querySelectorAll("[data-role]").forEach(el=>el.onclick=()=>openRole(el.dataset.role));const rb2=document.getElementById("robb");if(rb2)rb2.onclick=()=>{state.view="robot";render();scrollTo(0,0)};const rv=document.getElementById("revb");if(rv)rv.onclick=()=>{state.view="robot";render();scrollTo(0,0)};const s=document.getElementById("sysb");if(s)s.onclick=openSystem;const r=document.getElementById("rb");if(r)r.onclick=refresh;const l=document.getElementById("lo");if(l)l.onclick=()=>{savePin(null);state.pin="";state.data=null;state.sys=null;render()}}
 function bindSys(){
-  document.getElementById("bk").onclick=()=>{if(state.section){state.section=null;state.open=null;state.q=""}else state.view="main";render();scrollTo(0,0)};
+  document.getElementById("bk").onclick=()=>{if(state.open){state.open=null}else if(state.section){state.section=null;state.open=null;state.q=""}else state.view="main";render();scrollTo(0,0)};
   app.querySelectorAll("[data-sec]").forEach(b=>b.onclick=()=>{state.section=b.dataset.sec;state.open=null;state.q="";render();scrollTo(0,0)});
   app.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{state.open=state.open===b.dataset.open?null:b.dataset.open;render()});
   app.querySelectorAll("[data-doc]").forEach(b=>b.onclick=()=>{state.open=b.dataset.doc;render();scrollTo(0,0)});
