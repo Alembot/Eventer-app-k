@@ -35,6 +35,7 @@ h1{font-size:24px;margin:0;line-height:1.15}
 button.note{border:0;font:inherit;display:block}
 button.rowbtn{width:100%;border:0;border-top:1px solid var(--line);background:none;color:inherit;font:inherit;font-size:14px;text-align:left;cursor:pointer}
 .row.subrow{padding-left:30px;font-size:14px;color:var(--muted)}
+.row.subrow.zero{color:var(--dim)}
 .grid.g3{grid-template-columns:repeat(3,1fr)}
 section{margin-top:26px}
 h2{margin:0 0 10px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -153,7 +154,8 @@ function mainView(){
   h+=`<section><h2>По городам</h2><div class="list">
    <div class="row"><span>Алматы</span><span class="r"><b>${num(c3.almaty)}</b></span></div>
    <div class="row"><span>Астана</span><span class="r"><b>${num(c3.astana)}</b></span></div>
-   <div class="row"><span>Другие города</span><span class="r"><b>${num(c3.other)}</b></span></div></div></section>`;
+   <button class="row rowbtn" id="ocm"><span>Другие города</span><span class="r"><b>${num(c3.other)}</b> ${state.otherCitiesMain?"▾":"›"}</span></button>
+   ${state.otherCitiesMain?(d.cities||[]).filter(c=>!/^(Алмат|Астан)/i.test(c.city)).map(c=>`<div class="row subrow"><span>${esc(c.city)}</span><span class="r">${num(c.n)}</span></div>`).join(""):""}</div></section>`;
   h+=`<button class="logout" id="lo">Выйти</button></div>`;
   app.innerHTML=h;bind();
 }
@@ -188,12 +190,8 @@ function roleView(){
   if(!d){h+=`<p class="empty">Загружаю…</p></div>`;app.innerHTML=h;bindRole();return}
   const t=d.totals;
   h+=`<section><div class="grid g3">${tile(num(t.all),"Всего")}${tile(num(t.in_base),"В базе","","ok")}${tile(num(t.candidate),"Ждут проверки")}</div></section>`;
-  if(d.fit)h+=`<section><h2>Нужна ли Eventer</h2><div class="list">
-    <div class="row"><span>Подходит</span><span class="r"><b>${num(d.fit.yes)}</b></span></div>
-    <div class="row"><span>В Афишу</span><span class="r"><b>${num(d.fit.afisha)}</b></span></div>
-    <div class="row"><span>Ещё не проверена</span><span class="r"><b>${num(d.fit.unchecked)}</b></span></div></div></section>`;
   h+=`<section><h2>По категориям</h2><div class="list">${(d.groups||[]).map((g,i)=>{const open=state.openGroup===i;
-    return `<button class="row rowbtn" data-g="${i}"><span>${esc(g.category)}</span><span class="r"><b>${num(g.n)}</b> ${g.subs&&g.subs.length>1?(open?"▾":"›"):""}</span></button>${open?g.subs.map(x=>`<div class="row subrow"><span>${esc(x.name)}</span><span class="r">${num(x.n)}</span></div>`).join(""):""}`}).join("")}</div></section>`;
+    return `<button class="row rowbtn" data-g="${i}"><span>${esc(g.category)}</span><span class="r"><b>${num(g.n)}</b> ${g.subs&&g.subs.length?(open?"▾":"›"):""}</span></button>${open?g.subs.map(x=>`<div class="row subrow${x.n?"":" zero"}"><span>${esc(x.name)}</span><span class="r">${x.n?num(x.n):"—"}</span></div>`).join(""):""}`}).join("")}</div></section>`;
   if(d.capacity)h+=`<section><h2>По вместимости</h2><div class="list">${d.capacity.map(c=>`<div class="row"><span>${esc(c.label)}</span><span class="r"><b>${num(c.n)}</b></span></div>`).join("")}</div></section>`;
   if(!d.capacity&&state.role!=="venue"){const ty=d.types||{},T=Object.assign({},TYPE,{none:"Ещё не размечено"});
     h+=`<section><h2>По типам событий</h2><div class="list">${["business","corporate","culture","public","private","none"].filter(k=>ty[k]).map(k=>`<div class="row"><span>${esc(T[k])}</span><span class="r"><b>${num(ty[k])}</b></span></div>`).join("")}</div></section>`}
@@ -201,10 +199,12 @@ function roleView(){
   h+=`<section><h2>По городам</h2><div class="list">
    <div class="row"><span>Алматы</span><span class="r"><b>${num(c3.almaty)}</b></span></div>
    <div class="row"><span>Астана</span><span class="r"><b>${num(c3.astana)}</b></span></div>
-   <div class="row"><span>Другие города</span><span class="r"><b>${num(c3.other)}</b></span></div></div></section></div>`;
+   <button class="row rowbtn" id="ocb"><span>Другие города</span><span class="r"><b>${num(c3.other)}</b> ${state.otherCities?"▾":"›"}</span></button>
+   ${state.otherCities?(d.other_cities||[]).map(c=>`<div class="row subrow"><span>${esc(c.city)}</span><span class="r">${num(c.n)}</span></div>`).join(""):""}</div></section></div>`;
   app.innerHTML=h;bindRole();
 }
 function bindRole(){const b=document.getElementById("bk3");if(b)b.onclick=()=>{state.view="main";render();scrollTo(0,0)};
+  const oc=document.getElementById("ocb");if(oc)oc.onclick=()=>{state.otherCities=!state.otherCities;render()};
   document.querySelectorAll("[data-g]").forEach(el=>el.onclick=()=>{const i=+el.dataset.g;state.openGroup=state.openGroup===i?null:i;render()})}
 function bindRobot(){const b=document.getElementById("bk2");if(b)b.onclick=()=>{state.view="main";render();scrollTo(0,0)}}
 
@@ -243,7 +243,7 @@ function systemView(){
   app.innerHTML=h+"</div>";bindSys();
 }
 
-function bind(){document.querySelectorAll("[data-role]").forEach(el=>el.onclick=()=>openRole(el.dataset.role));const rb2=document.getElementById("robb");if(rb2)rb2.onclick=()=>{state.view="robot";render();scrollTo(0,0)};const rv=document.getElementById("revb");if(rv)rv.onclick=()=>{state.view="robot";render();scrollTo(0,0)};const s=document.getElementById("sysb");if(s)s.onclick=openSystem;const r=document.getElementById("rb");if(r)r.onclick=refresh;const l=document.getElementById("lo");if(l)l.onclick=()=>{savePin(null);state.pin="";state.data=null;state.sys=null;render()}}
+function bind(){const ocm=document.getElementById("ocm");if(ocm)ocm.onclick=()=>{state.otherCitiesMain=!state.otherCitiesMain;render()};document.querySelectorAll("[data-role]").forEach(el=>el.onclick=()=>openRole(el.dataset.role));const rb2=document.getElementById("robb");if(rb2)rb2.onclick=()=>{state.view="robot";render();scrollTo(0,0)};const rv=document.getElementById("revb");if(rv)rv.onclick=()=>{state.view="robot";render();scrollTo(0,0)};const s=document.getElementById("sysb");if(s)s.onclick=openSystem;const r=document.getElementById("rb");if(r)r.onclick=refresh;const l=document.getElementById("lo");if(l)l.onclick=()=>{savePin(null);state.pin="";state.data=null;state.sys=null;render()}}
 function bindSys(){
   document.getElementById("bk").onclick=()=>{if(state.section){state.section=null;state.open=null;state.q=""}else state.view="main";render();scrollTo(0,0)};
   app.querySelectorAll("[data-sec]").forEach(b=>b.onclick=()=>{state.section=b.dataset.sec;state.open=null;state.q="";render();scrollTo(0,0)});
