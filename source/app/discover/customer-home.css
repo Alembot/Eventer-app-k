@@ -77,6 +77,7 @@
 .ch-checks i{width:22px;height:22px;border-radius:7px;border:1.5px solid #C9C5BD;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:14px;color:#fff;flex:none}
 .ch-checks button.on i{background:#F0541E;border-color:#F0541E}
 .ch-go{margin-top:18px}.ch-go b{font-size:18px}.ch-go:disabled{opacity:.5}
+.ch-go+.ch-go{margin-top:10px}.ch-go-light{background:#fff;color:#1D1D1B;box-shadow:inset 0 0 0 1.5px #1D1D1B}.ch-go-light small{color:#5E5A53}
 .ch-actions{display:flex;flex-direction:column;gap:0;margin-top:8px}
 .ch-rowbtn{border:0;text-align:left;font:inherit;width:100%}
 @media print{.ch-nav,.ch-header,.ch-back,.ch-actions,.ch-shelfrow{display:none!important}.ch-app{padding:0}}

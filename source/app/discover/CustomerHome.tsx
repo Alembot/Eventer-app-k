@@ -217,7 +217,7 @@ function rowsTemplate(l:Line,guests:number):Row[]{
  return [one("Сумма",a,"раз","сумма, ₸")];
 }
 const rowsSum=(r:Row[])=>r.reduce((x,y)=>x+(y.qty||0)*(y.price||0),0);
-type Project={id:string;type:TypeCode;date:string;guests:number;budget:number|null;level?:number;picked:string[];lines:Line[];created:string};
+type Project={id:string;type:TypeCode;date:string;guests:number;budget:number|null;level?:number;picked:string[];lines:Line[];created:string;mode?:"self"|"organizer"};
 const PKEY="eventer_projects";
 const loadProjects=():Project[]=>{try{return (JSON.parse(localStorage.getItem(PKEY)||"[]") as Project[]).map(p=>({...p,lines:p.lines.map(l=>({...l,tiers:l.tiers??null,amount:l.amount??l.est??0}))}))}catch{return []}};
 const saveProject=(p:Project)=>{try{localStorage.setItem(PKEY,JSON.stringify([p,...loadProjects().filter(x=>x.id!==p.id)].slice(0,30)))}catch{/* private mode */}};
@@ -242,10 +242,10 @@ const tierMid=(l:Line,i:number)=>l.tiers?round10k((l.tiers[i].min+l.tiers[i].max
 const tierOf=(l:Line)=>{if(!l.tiers||!l.amount)return -1;const v=l.amount/l.qty;return l.tiers.findIndex(t=>v>=t.min*0.85&&v<=t.max*1.15)};
 
 function ProjectBuilder({preset,go}:{preset?:TypeCode;go:(h:string)=>void}){
- const [type,setType]=useState<TypeCode|undefined>(preset),[date,setDate]=useState(""),[guests,setGuests]=useState(100),[budget,setBudget]=useState(""),[picked,setPicked]=useState<string[]|null>(null),[busy,setBusy]=useState(false),[err,setErr]=useState(false);
+ const [type,setType]=useState<TypeCode|undefined>(preset),[date,setDate]=useState(""),[guests,setGuests]=useState(100),[budget,setBudget]=useState(""),[picked,setPicked]=useState<string[]|null>(null),[busy,setBusy]=useState<false|"self"|"organizer">(false),[err,setErr]=useState(false);
  const t=type?byCode(type)!:null;
  useEffect(()=>{if(t)setPicked(t.shelves.filter(x=>x.share||x.kind==="venue").map(x=>x.title))},[type]);
- const build=async()=>{if(!t||!picked)return;setBusy(true);setErr(false);
+ const build=async(mode:"self"|"organizer")=>{if(!t||!picked)return;setBusy(mode);setErr(false);
   let tiers:Record<string,Tier[]>={};try{tiers=await rpc("pub_price_tiers",{p_city:"Алматы"})}catch{setErr(true)}
   const b=budget?Number(budget.replace(/\D/g,""))||null:null;
   const chosen=t.shelves.filter(x=>picked.includes(x.title));const shareSum=chosen.reduce((a,x)=>a+shareMid(x.share),0)||1;
@@ -254,9 +254,9 @@ function ProjectBuilder({preset,go}:{preset?:TypeCode;go:(h:string)=>void}){
    // С бюджетом — делим его по долям статей (90%, 10% резерв); без бюджета — середина рынка «стандарт».
    line.amount=b?round10k(Math.min(b*0.9*share/shareSum,line.tiers?line.tiers[2].max*qty:Infinity)):tierMid(line,1);return line});
   // Доля бюджета не превышает потолок рынка (премиум) — излишек остаётся в «Остатке».
-  const p:Project={id:String(Date.now()),type:t.code,date,guests,budget:b,picked,lines,created:new Date().toISOString()};
+  const p:Project={id:String(Date.now()),type:t.code,date,guests,budget:b,picked,lines,created:new Date().toISOString(),mode};
   saveProject(p);setBusy(false);go(`project=${p.id}`)};
- return <section className="ch-block"><span className="ch-eyebrow">АССИСТЕНТ</span><h1>Собрать проект</h1><p>Три шага — и у вас смета-конструктор, дорожная карта и подбор исполнителей.</p>
+ return <section className="ch-block"><span className="ch-eyebrow">АССИСТЕНТ</span><h1>Собрать проект</h1><p>Опишите событие — и решите: делать самим или отдать организатору.</p>
   <h2>1. Какое событие?</h2>
   <div className="ch-chips ch-wrap">{territories.map(x=><button key={x.code} className={type===x.code?"on":""} onClick={()=>setType(x.code)}>{x.title}</button>)}</div>
   {t&&<>
@@ -269,7 +269,10 @@ function ProjectBuilder({preset,go}:{preset?:TypeCode;go:(h:string)=>void}){
    <h2>3. Что нужно</h2>
    <div className="ch-checks">{t.shelves.map(x=>{const on=!!picked?.includes(x.title);return <button key={x.title} className={on?"on":""} onClick={()=>setPicked(p=>on?(p??[]).filter(y=>y!==x.title):[...(p??[]),x.title])}><i>{on?"✓":""}</i><span>{x.title}</span></button>})}</div>
    {err&&<p className="ch-note">Цены рынка не загрузились — смета будет без подсказок по рынку.</p>}
-   <button className="ch-prepare ch-go" disabled={busy||!guests||!picked?.length} onClick={build}><b>{busy?"Собираем…":"Собрать проект"}</b><i>→</i></button>
+   <h2>4. Кто будет делать?</h2>
+   <p className="ch-note ch-note-top">Бриф готов. Решите, как дальше.</p>
+   <button className="ch-prepare ch-go" disabled={!!busy||!guests||!picked?.length} onClick={()=>build("self")}><b>{busy==="self"?"Собираем…":"Сделаю сам"}</b><small>Смета, дорожная карта и исполнители по каждой статье</small><i>→</i></button>
+   <button className="ch-prepare ch-go ch-go-light" disabled={!!busy||!guests||!picked?.length} onClick={()=>build("organizer")}><b>{busy==="organizer"?"Собираем…":"Отдам организатору"}</b><small>Подберём профильных организаторов и отправим им бриф</small><i>→</i></button>
   </>}
  </section>}
 
@@ -305,6 +308,22 @@ function ProjectView({id,line,go}:{id:string;line:number|null;go:(h:string)=>voi
    <button className="ch-cta" onClick={()=>setRows([...rows,{label:"Новая позиция",qty:1,qtyLabel:"шт.",price:0,priceLabel:"цена, ₸"}])}>+ Добавить позицию</button>
    <button className="ch-cta ch-cta-dark" onClick={()=>history.back()}>Готово</button>
   </section>}
+ const briefTxt=[`Бриф: ${t.title}`,`Дата: ${dateTxt}`,`Гостей: ${p.guests}`,p.budget?`Бюджет: ${money(p.budget)}`:"Бюджет: не указан","Что нужно:",...p.lines.filter(l=>!/Организатор/i.test(l.title)).map(l=>`— ${l.title}`)].join("\n");
+ if(p.mode==="organizer"){const orgShelf=t.shelves.find(x=>x.cat===AGENCY)??{title:"Организаторы",hint:"Организация под ключ",kind:"vendor" as const,cat:AGENCY};
+  return <section className="ch-block"><span className="ch-eyebrow">ПРОЕКТ · ОРГАНИЗАТОРУ</span><h1 className="ch-h1s">{t.title}</h1><p className="ch-count">{dateTxt} · {p.guests} гостей</p>
+   <h2>Бриф</h2>
+   <div className="ch-list">
+    <div><span>Событие</span><small>{t.title}</small></div>
+    <div><span>Дата</span><small>{dateTxt}</small></div>
+    <div><span>Гостей</span><small>{p.guests}</small></div>
+    <div><span>Бюджет</span><small>{p.budget?money(p.budget):"не указан"}</small></div>
+    <div><span>Что нужно</span><small>{p.lines.filter(l=>!/Организатор/i.test(l.title)).map(l=>l.title).join(", ")}</small></div>
+   </div>
+   <ShelfRow sh={{...orgShelf,title:"Подходящие организаторы"}} type={t.code} go={go} idx={orderShelves(t.shelves).indexOf(orgShelf as Shelf)}/>
+   <p className="ch-note">Отправка брифа организаторам из приложения появится вместе с разделом «Заявки». Пока бриф можно скопировать и отправить самому.</p>
+   <div className="ch-actions"><button className="ch-cta ch-cta-dark" onClick={()=>{navigator.clipboard?.writeText(briefTxt).then(()=>setCopied(true)).catch(()=>setCopied(false))}}>{copied?"Бриф скопирован":"Скопировать бриф"}</button>
+    <button className="ch-cta" onClick={()=>upd({...p,mode:"self"})}>Передумал — сделаю сам</button></div>
+  </section>}
  return <section className="ch-block"><span className="ch-eyebrow">ПРОЕКТ</span><h1 className="ch-h1s">{t.title}</h1><p className="ch-count">{dateTxt} · {p.guests} гостей</p>
   {totalBar}
   <h2>Смета</h2>
@@ -321,7 +340,7 @@ function ProjectView({id,line,go}:{id:string;line:number|null;go:(h:string)=>voi
   {orderShelves(t.shelves).filter(x=>p.picked.includes(x.title)).map(x=>x.kind==="venue"?<VenueShelf key={x.title} t={t} s={x} go={go} minGuests={p.guests}/>:<ShelfRow key={x.title} sh={x} type={t.code} go={go} idx={orderShelves(t.shelves).indexOf(x)}/>)}
   <h2>Креатив</h2>
   <div className="ch-list"><div className="muted"><span>2–3 идеи концепции под цель и бюджет</span><small>скоро</small></div></div>
-  <div className="ch-actions"><button className="ch-cta" onClick={()=>{navigator.clipboard?.writeText(summary).then(()=>setCopied(true)).catch(()=>setCopied(false))}}>{copied?"Скопировано":"Скопировать для руководителя"}</button><button className="ch-cta" onClick={()=>window.print()}>Сохранить в PDF</button></div>
+  <div className="ch-actions"><button className="ch-cta" onClick={()=>upd({...p,mode:"organizer"})}>Отдать организатору</button><button className="ch-cta" onClick={()=>{navigator.clipboard?.writeText(summary).then(()=>setCopied(true)).catch(()=>setCopied(false))}}>{copied?"Скопировано":"Скопировать для руководителя"}</button><button className="ch-cta" onClick={()=>window.print()}>Сохранить в PDF</button></div>
  </section>}
 
 function MoneyInput({value,onChange}:{value:number;onChange:(v:number)=>void}){
