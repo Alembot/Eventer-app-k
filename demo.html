@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Eventer — показ</title>
+<style>
+  html,body{margin:0;height:100%;background:#0b0b0d;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  body{display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(1200px 700px at 50% 40%,#3a1a0e 0%,#0b0b0d 60%)}
+  .stage{transform-origin:center center}
+  .phone{position:relative;width:390px;height:844px;border-radius:56px;padding:12px;background:#1b1b1f;
+    box-shadow:0 0 0 2px #3a3a40,0 40px 120px rgba(240,84,30,.25),0 30px 80px rgba(0,0,0,.7)}
+  .screen{position:relative;width:390px;height:844px;border-radius:44px;overflow:hidden;background:#F6F4F0}
+  iframe{width:390px;height:844px;border:0;display:block;background:#F6F4F0}
+  .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:120px;height:32px;border-radius:0 0 18px 18px;background:#1b1b1f;z-index:2;pointer-events:none}
+</style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen"><iframe id="app" title="Eventer" allow="autoplay"></iframe></div>
+    </div>
+  </div>
+<script>
+  // Показ для заказчика: сразу главная заказчика, без экрана выбора роли
+  try{localStorage.setItem('eventer_role','customer')}catch(e){}
+  document.getElementById('app').src='demo/?show=1';
+  // Телефон целиком помещается в экран ноутбука или проектора
+  function fit(){var s=Math.min((innerHeight-40)/868,(innerWidth-40)/414,1.25);document.getElementById('stage').style.transform='scale('+s+')'}
+  addEventListener('resize',fit);fit();
+</script>
+</body>
+</html>

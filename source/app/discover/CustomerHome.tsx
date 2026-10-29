@@ -9,6 +9,8 @@ import "./customer-home.css";
 const BASE=import.meta.env.BASE_URL||"/";
 const pub=(p:string)=>`${BASE}${p.replace(/^\//,"")}`;
 const ROLE_KEY="eventer_role";
+// Режим показа (demo.html): пустые полки не показываем.
+const SHOW=typeof location!=="undefined"&&new URLSearchParams(location.search).has("show");
 const API="https://hgzxowfegmvxqtryphbd.supabase.co/rest/v1/rpc/";
 const KEY="sb_publishable_LSSMoXyNchkWJ7c2gIdGxA_GRPdZcWX";
 async function rpc<T>(name:string,body:unknown):Promise<T>{const r=await fetch(API+name,{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify(body)});if(!r.ok)throw new Error(String(r.status));return r.json()}
@@ -147,6 +149,7 @@ function ShelfRow({sh,type,go,idx}:{sh:Shelf;type:TypeCode;go:(h:string)=>void;i
  const [page,setPage]=useState<Page|null>(null),[err,setErr]=useState(false),[chip,setChip]=useState(-1);
  const has=!!(sh.cat||sh.tags),tags=chip<0?sh.tags??null:sh.chips![chip].re;
  useEffect(()=>{if(!has)return;setPage(null);setErr(false);rpc<Page>("pub_catalog_v2",{p_type:type,p_kind:"vendor",p_category:sh.cat??null,p_sub:sh.sub??null,p_tags:tags,p_limit:8}).then(setPage).catch(()=>setErr(true))},[type,sh.title,chip]);
+ if(SHOW&&(!has||(page&&page.total===0)||err))return null;
  return <div className="ch-shelfrow">
   <div className="ch-sec"><div><h2>{sh.title}</h2><small>{sh.share??sh.hint}</small></div>{page&&page.total>0&&<button onClick={()=>go(`vendors=${type}|${idx}|${chip}`)}>Все {page.total} →</button>}</div>
   {sh.chips&&<div className="ch-chips ch-mini"><button className={chip<0?"on":""} onClick={()=>setChip(-1)}>Все</button>{sh.chips.map((c,i)=><button key={c.label} className={chip===i?"on":""} onClick={()=>setChip(i)}>{c.label}</button>)}</div>}
